@@ -6,517 +6,680 @@
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>皮拉提斯課程預約系統</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap">
+<title>皮拉提斯排課表</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
 <style>
-/* Layout: phone-first member app; admin switches to sidebar + workspace at desktop width */
+/* Layout: top toolbar + resource calendar (one lane per coach) as the working surface; member and settings views share the same frame */
 :root{
-  --bg:#F2F3F1; --surface:#FFFFFF; --sunk:#E7EAE6; --line:#D6DBD5;
-  --ink:#1D2523; --muted:#5E6A66; --accent:#2E5E54; --accent-ink:#FFFFFF; --accent-soft:#DCE8E3;
-  --line-green:#06C755; --ok:#2F7A4B; --warn:#A36A12; --bad:#B23B3B;
+  --bg:#F3F4F1; --surface:#FFFFFF; --sunk:#E9ECE7; --line:#D7DCD5; --grid-soft:#EDF0EB;
+  --ink:#1C2422; --muted:#5D6965; --accent:#2E5E54; --accent-ink:#FFFFFF; --accent-soft:#DCE8E3;
+  --ok:#2F7A4B; --warn:#9C6410; --bad:#B23B3B;
+  --c0:#2E7D6B; --c1:#8A4F9E; --c2:#B07A12; --c3:#2F6DB5; --c4:#C0506A; --c5:#5F7A2A;
   --f-display:"Noto Serif TC","Songti TC",serif;
   --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --r:10px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#141917; --surface:#1C2320; --sunk:#232B28; --line:#323D39;
-  --ink:#E6ECE9; --muted:#9AA8A3; --accent:#7FB8A8; --accent-ink:#0F1A17; --accent-soft:#24362F;
-  --ok:#6CC58F; --warn:#E0A84A; --bad:#E57A7A; color-scheme:dark}}
+  --bg:#131816; --surface:#1B211F; --sunk:#232A27; --line:#323C38; --grid-soft:#252D2A;
+  --ink:#E5ECE9; --muted:#98A6A1; --accent:#7FB8A8; --accent-ink:#0F1A17; --accent-soft:#24362F;
+  --ok:#6CC58F; --warn:#E0A84A; --bad:#E57A7A;
+  --c0:#5CC3AA; --c1:#C38FD6; --c2:#E2B14E; --c3:#7AAEF0; --c4:#EB8AA0; --c5:#A8C46A; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141917; --surface:#1C2320; --sunk:#232B28; --line:#323D39;
-  --ink:#E6ECE9; --muted:#9AA8A3; --accent:#7FB8A8; --accent-ink:#0F1A17; --accent-soft:#24362F;
-  --ok:#6CC58F; --warn:#E0A84A; --bad:#E57A7A; color-scheme:dark}
+  --bg:#131816; --surface:#1B211F; --sunk:#232A27; --line:#323C38; --grid-soft:#252D2A;
+  --ink:#E5ECE9; --muted:#98A6A1; --accent:#7FB8A8; --accent-ink:#0F1A17; --accent-soft:#24362F;
+  --ok:#6CC58F; --warn:#E0A84A; --bad:#E57A7A;
+  --c0:#5CC3AA; --c1:#C38FD6; --c2:#E2B14E; --c3:#7AAEF0; --c4:#EB8AA0; --c5:#A8C46A; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
-h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;line-height:1.3}
-button,input,select{font:inherit;color:inherit}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;line-height:1.3;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:12.5px}
 .label{font-size:12px;letter-spacing:.08em;color:var(--muted)}
 
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;font-weight:500;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.btn.ghost{background:transparent}
-.btn.danger{color:var(--bad);border-color:var(--bad);background:transparent}
-.btn.sm{padding:4px 12px;font-size:13px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-
-.pill{display:inline-block;font-size:12px;padding:2px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
-.pill.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent);background:transparent}
+.btn.sm{padding:3px 10px;font-size:13px}
+.btn.icon{padding:6px 10px;min-width:34px}
+.pill{display:inline-block;font-size:12px;padding:1px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
 .pill.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
 .pill.bad{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
-.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--cc);flex:0 0 auto}
 
-/* demo bar */
-.demobar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;padding:8px 16px;background:var(--sunk);font-size:13px;color:var(--muted)}
-.demobar b{color:var(--ink)}
+/* top bar */
+.top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
+.brand{display:flex;flex-direction:column;line-height:1.2;margin-right:auto}
+.brand h1{font-size:18px}
+.seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px}
+.seg button{border:0;background:none;padding:5px 14px;border-radius:7px;color:var(--muted);font-weight:500}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 15%,transparent)}
+.bar{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;padding:10px 16px}
+.datenav{display:flex;align-items:center;gap:6px}
+.datenav h2{font-size:18px;min-width:9.5em}
+.datenav input[type=date]{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 11px 3px 9px;font-size:13px}
+.chip.off{opacity:.45}
+.chip.off .dot{background:transparent;border:1.5px solid var(--cc)}
+.focus{display:flex;align-items:center;gap:6px;margin-left:auto}
+.focus select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 8px;max-width:180px}
+.banner{margin:0 16px 10px;padding:8px 14px;border-radius:8px;background:var(--accent-soft);display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.focusinfo{margin:0 16px 10px;font-size:13px}
 
-/* login */
-.login{max-width:400px;margin:0 auto;padding:48px 16px 64px;display:grid;gap:24px}
-.brand{display:grid;gap:4px}
-.brand .mark{width:44px;height:44px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;color:var(--accent);font-family:var(--f-display);font-size:20px}
-.brand h1{font-size:28px;margin-top:12px}
-.oauth{display:grid;gap:12px}
-.oauth button{display:flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--r);padding:12px;font-weight:700;border:1px solid var(--line);background:var(--surface)}
-.oauth .line{background:var(--line-green);color:#fff;border-color:var(--line-green)}
-.oauth svg{width:20px;height:20px}
-.form{display:grid;gap:14px}
-.field{display:grid;gap:4px}
-.field input,.field select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;width:100%}
-.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+/* calendar */
+.cal-wrap{margin:0 16px 32px;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.cal{display:grid;position:relative}
+.cal .head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px;z-index:3;min-width:0}
+.cal .head .n{margin-left:auto}
+.cal .head.today{color:var(--accent)}
+.cal .head button.dhead{border:0;background:none;padding:0;text-align:left;display:flex;flex-direction:column;line-height:1.25}
+.cal .head .wd{font-size:12px;color:var(--muted)}
+.cal .head .dd{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.cal .head.today .dd,.cal .head.today .wd{color:var(--accent)}
+.times{position:relative;border-right:1px solid var(--line)}
+.times span{position:absolute;right:8px;transform:translateY(-50%);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.times span:first-child{transform:translateY(2px)}
+.lane{position:relative;border-right:1px solid var(--grid-soft);cursor:copy;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(var(--grid-soft) 1px,transparent 1px);
+  background-size:100% var(--hour),100% calc(var(--hour) / 2)}
+.lane:last-child{border-right:0}
+.lane.today{background-color:color-mix(in srgb,var(--accent-soft) 35%,transparent)}
+.lane:hover{background-color:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+.nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:2;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.blk{position:absolute;container-type:inline-size;overflow:hidden;text-align:left;cursor:pointer;
+  background:color-mix(in srgb,var(--cc) 15%,var(--surface));border:1px solid color-mix(in srgb,var(--cc) 50%,transparent);
+  border-radius:6px;padding:3px 6px;display:flex;flex-direction:column;gap:0;line-height:1.3;z-index:1}
+.blk:hover{background:color-mix(in srgb,var(--cc) 24%,var(--surface));z-index:4}
+.b-time{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.b-names{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.b-meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-st{position:absolute;top:3px;right:4px;font-size:11px;padding:0 6px;border-radius:999px;background:var(--surface);color:var(--muted)}
+.blk.st-done .b-st{color:var(--ok)}
+.blk.st-leave,.blk.st-noshow{background:repeating-linear-gradient(135deg,var(--sunk) 0 6px,var(--surface) 6px 12px);border-style:dashed}
+.blk.st-leave .b-names,.blk.st-noshow .b-names{text-decoration:line-through;color:var(--muted)}
+.blk.st-noshow .b-st{color:var(--bad)}
+.blk.dim{opacity:.22}
+.blk.hit{box-shadow:0 0 0 2px var(--cc);z-index:3}
+@container (max-width:84px){.b-meta,.b-st{display:none}.b-names{font-size:12px}}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
 
-/* member app */
-.app{max-width:560px;margin:0 auto;padding-block:0 96px}
-.mhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px 16px 12px}
-.credit{text-align:right}
-.credit .n{font-family:var(--f-display);font-size:28px;color:var(--accent);line-height:1}
-.days{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 12px;scrollbar-width:none}
-.day{flex:0 0 auto;width:56px;padding:8px 0;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);text-align:center;line-height:1.3}
-.day .d{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
-.day.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.list{display:grid;gap:10px;padding:0 16px}
-.cls{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
-.cls .t{font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
-.cls .info{min-width:0}
-.cls .name{font-weight:700}
-.seats{display:flex;gap:3px;margin-top:6px}
-.seats i{width:8px;height:8px;border-radius:2px;background:var(--sunk);border:1px solid var(--line)}
-.seats i.f{background:var(--accent);border-color:var(--accent)}
-.empty{padding:32px 16px;text-align:center;color:var(--muted)}
-.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
-.tabbar button{flex:1;max-width:180px;border:0;background:none;padding:12px 0;color:var(--muted);font-weight:500}
-.tabbar button.on{color:var(--accent);box-shadow:inset 0 2px 0 var(--accent)}
-.sec{padding:8px 16px;display:grid;gap:12px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
-.kv{display:grid;grid-template-columns:96px 1fr;gap:6px 12px}
-
-/* admin */
-.admin{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-.side{background:var(--surface);border-right:1px solid var(--line);padding:24px 12px;display:flex;flex-direction:column;gap:4px}
-.side h2{font-size:18px;padding:0 12px 16px}
-.side button{text-align:left;border:0;background:none;padding:10px 12px;border-radius:8px;color:var(--muted);font-weight:500}
-.side button.on{background:var(--accent-soft);color:var(--accent)}
-.side .spacer{flex:1}
-.work{padding:28px 32px 64px;min-width:0;display:grid;gap:20px;align-content:start}
-.work-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.work-head h1{font-size:24px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
-.stat .v{font-family:var(--f-display);font-size:30px;line-height:1.2}
-.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
-table{border-collapse:collapse;width:100%;min-width:640px}
-th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
-th{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:500;background:var(--sunk)}
+/* member view */
+.mview{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:12px 16px 40px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.mlist .tools{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+.mlist input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px}
+.mlist ul{list-style:none;margin:0;padding:6px;max-height:calc(100vh - 220px);overflow:auto}
+.mlist li button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;border:0;background:none;padding:8px 10px;border-radius:7px;text-align:left}
+.mlist li button.on{background:var(--accent-soft)}
+.mdetail{padding:20px;display:grid;gap:20px}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.mhead h2{font-size:24px}
+.credit{display:flex;gap:24px;flex-wrap:wrap}
+.credit div{display:flex;flex-direction:column}
+.credit .v{font-family:var(--f-display);font-size:28px;line-height:1.15}
+.credit .v.low{color:var(--warn)}
+.credit .v.zero{color:var(--bad)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:500}
 tr:last-child td{border-bottom:0}
-.bar{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;width:90px}
-.bar span{display:block;height:100%;background:var(--accent)}
-.row-actions{display:flex;gap:6px;flex-wrap:wrap}
-.filters{display:flex;gap:8px;flex-wrap:wrap}
-.filters select,.filters input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.stepper{display:inline-flex;align-items:center;gap:6px}
-.stepper button{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--surface);padding:0;line-height:1}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--sunk)}
+.sec-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.sec-title h3{font-size:16px}
 
-/* modal + toast */
+/* settings */
+.settings{padding:12px 16px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.settings .panel{padding:16px;display:grid;gap:12px}
+.rowlist{display:grid;gap:8px}
+.srow{display:flex;gap:8px;align-items:center}
+.srow input,.srow select{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:5px 8px;min-width:0}
+.srow input.grow{flex:1}
+.srow input.n{width:64px}
+
+/* forms & modal */
+.form{display:grid;gap:12px}
+.field{display:grid;gap:4px;min-width:0}
+.field label{font-size:13px;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.mchips{display:flex;gap:6px;flex-wrap:wrap}
+.mchip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px}
+.mchip button{border:0;background:none;width:20px;height:20px;border-radius:50%;padding:0;line-height:1;color:var(--muted)}
+.addrow{display:flex;gap:8px}
+.addrow select,.addrow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
+.warns{display:grid;gap:4px;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);font-size:13px}
+.warns.ok{background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ok)}
 .scrim{position:fixed;inset:0;background:color-mix(in srgb,#000 45%,transparent);display:grid;place-items:center;padding:16px;z-index:20}
-.modal{background:var(--surface);border-radius:14px;padding:22px;width:100%;max-width:460px;display:grid;gap:16px;max-height:90vh;overflow:auto}
-.modal .acts{display:flex;justify-content:flex-end;gap:8px}
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.modal{background:var(--surface);border-radius:14px;padding:20px;width:100%;max-width:520px;display:grid;gap:14px;max-height:92vh;overflow:auto}
+.modal .acts{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.modal .acts .left{margin-right:auto;display:flex;gap:8px;flex-wrap:wrap}
+.modal textarea.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;height:160px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:999px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 
-@media (max-width:820px){
-  .admin{grid-template-columns:1fr}
-  .side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
-  .side h2,.side .spacer{display:none}
-  .side button{flex:0 0 auto}
-  .work{padding:20px 16px 64px}
-  .stats{grid-template-columns:1fr 1fr}
-  .grid2{grid-template-columns:1fr}
+@media (max-width:760px){
+  .mview{grid-template-columns:1fr}
+  .mlist ul{max-height:240px}
+  .focus{margin-left:0}
+  .grid3{grid-template-columns:1fr 1fr}
+  .datenav h2{min-width:0;font-size:16px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="demobar">原型展示｜目前身分：<b id="whoami">未登入</b>
-  <button class="btn sm ghost" id="demo-member">切換：會員</button>
-  <button class="btn sm ghost" id="demo-admin">切換：管理員</button>
-  <button class="btn sm ghost" id="demo-reset">登出</button>
-</div>
 <div id="root"></div>
 <div id="layer"></div>
 
 <script>
-// ---------- helpers ----------
+// ===== helpers =====
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pad = n => String(n).padStart(2, '0');
+const pad = n => String(n).padStart(2,'0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => new Date(s + 'T00:00');
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 const WD = ['日','一','二','三','四','五','六'];
-const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-const today = new Date(); today.setHours(0,0,0,0);
-const fmtDate = s => { const d = new Date(s + 'T00:00'); return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; };
-const startOf = c => new Date(`${c.date}T${c.start}`);
-const endTime = c => { const d = new Date(startOf(c).getTime() + c.dur*60000); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-let uid = 100; const nid = p => p + (++uid);
-
-// ---------- sample data（範例資料）----------
-const TYPES = ['Reformer 核心床','Mat 墊上','Chair 椅','Cadillac 塔床','孕期皮拉提斯'];
-const COACHES = ['Vivian','Ken','Mia','Amber'];
-const ROOMS = ['A 教室（器械）','B 教室（墊上）'];
-const state = {
-  user: null, role: null,
-  memberTab: 'schedule', adminTab: 'dash', day: ymd(today),
-  settings: { studio:'Core & Breath 皮拉提斯', cancelHours: 12, openDays: 14, waitlist: true, notifyLine: true },
-  members: [
-    { id:'m1', name:'林雅婷', provider:'LINE', phone:'0912-345-678', plan:'10 堂課卡', credits:6, expire:'2027-01-31', status:'active', joined:'2026-03-02' },
-    { id:'m2', name:'陳怡君', provider:'Google', phone:'0933-222-111', plan:'20 堂課卡', credits:14, expire:'2027-03-15', status:'active', joined:'2026-05-18' },
-    { id:'m3', name:'王志豪', provider:'LINE', phone:'0988-765-432', plan:'單堂', credits:1, expire:'2026-11-30', status:'active', joined:'2026-09-21' },
-    { id:'m4', name:'張書瑜', provider:'Google', phone:'0921-555-090', plan:'月費無限', credits:99, expire:'2026-10-31', status:'active', joined:'2026-01-11' },
-    { id:'m5', name:'黃柏翰', provider:'LINE', phone:'0956-100-200', plan:'10 堂課卡', credits:0, expire:'2026-12-20', status:'paused', joined:'2025-12-03' },
-    { id:'m6', name:'吳佳穎', provider:'LINE', phone:'0910-880-660', plan:'10 堂課卡', credits:3, expire:'2026-11-10', status:'active', joined:'2026-07-07' },
-  ],
-  classes: []
+const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fromMin = m => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
+const endOf = b => fromMin(toMin(b.start) + b.dur);
+const wkStart = d => addDays(d, -((d.getDay()+6)%7));
+const fmtMD = s => { const d = parse(s); return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; };
+const uid = p => p + Math.random().toString(36).slice(2,9);
+const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+const STATUS = {
+  booked:{label:'已預約', charge:true},
+  done:{label:'已到課', charge:true},
+  leave:{label:'請假', charge:false},
+  noshow:{label:'缺席', charge:true}
 };
-(function seed(){
-  const plan = [
-    ['08:00',55,0,0,0,4],['10:00',55,1,1,1,8],['12:15',45,2,2,0,3],
-    ['18:30',55,0,3,0,4],['19:45',55,1,0,1,8],['20:00',55,3,1,0,2]
-  ];
-  for (let i = 0; i < 7; i++) {
-    const date = ymd(addDays(today, i));
-    plan.forEach((p, j) => {
-      if ((i + j) % 4 === 3) return; // 不是每天都排滿
-      const [start,dur,t,co,r,cap] = p;
-      const type = (i === 5 && j === 1) ? 4 : t;
-      const others = ['m2','m3','m4','m6'];
-      const n = Math.min(cap, (i*3 + j*5) % (cap + 1));
-      const booked = others.slice(0, Math.min(n, others.length));
-      while (booked.length < n) booked.push('guest' + booked.length);
-      state.classes.push({ id:nid('c'), title:TYPES[type], coach:COACHES[(co+i)%4], room:ROOMS[r], date, start, dur, cap, booked, wait:[], note:'' });
-    });
-  }
-  // 讓會員林雅婷已有兩筆預約
-  const mine = state.classes.filter(c => c.booked.length < c.cap);
-  [mine[2], mine[9]].forEach(c => c && c.booked.push('m1'));
-})();
-const memberName = id => (state.members.find(m => m.id === id) || {}).name || '現場會員';
 
-// ---------- ui primitives ----------
+// ===== data =====
+const KEY = 'pilates-schedule-v2';
+function load(){ try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){} }
+
+function seed(){
+  const coaches = [{id:'k1',name:'Vivian',color:0},{id:'k2',name:'Ken',color:3},{id:'k3',name:'Mia',color:1},{id:'k4',name:'Amber',color:2}];
+  const rooms = [{id:'r1',name:'Reformer A'},{id:'r2',name:'Reformer B'},{id:'r3',name:'Cadillac 塔床'},{id:'r4',name:'墊上教室'}];
+  const types = [{id:'t1',name:'私人課',dur:55,cap:1},{id:'t2',name:'雙人課',dur:55,cap:2},{id:'t3',name:'小團體',dur:55,cap:4},{id:'t4',name:'孕期私人課',dur:55,cap:1},{id:'t5',name:'體驗課',dur:60,cap:1}];
+  const names = ['林雅婷','陳怡君','王志豪','張書瑜','黃柏翰','吳佳穎','李宜蓁','周品妤','許家豪','蔡沛恩','鄭雅文','劉思妤'];
+  const phones = ['0912-345-678','0933-222-111','0988-765-432','0921-555-090','0956-100-200','0910-880-660','0937-414-202','0975-303-818','0922-610-447','0919-276-530','0963-158-902','0928-731-064'];
+  const notes = ['下背舊傷，避免深度前彎','','','孕期 22 週','膝蓋術後復健','','','肩頸緊繃','','','',''];
+  const members = names.map((n,i)=>({id:'m'+(i+1), name:n, phone:phones[i], note:notes[i], packages:[]}));
+  const slots = { k1:['09:00','10:00','18:30','19:30'], k2:['07:30','12:00','19:00','20:00'], k3:['10:30','14:00','17:30','18:30'], k4:['09:30','11:00','19:00','20:00'] };
+  const roomOf = { k1:'r1', k2:'r2', k3:'r3', k4:'r4' };
+  const bookings = [];
+  const ws = wkStart(TODAY), now = new Date();
+  let ptr = 0, n = 0;
+  for (let d = 0; d < 14; d++) {
+    if (d % 7 === 6) continue; // 週日公休
+    const date = ymd(addDays(ws, d));
+    coaches.forEach((c, ki) => slots[c.id].forEach((start, si) => {
+      if ((d*31 + ki*17 + si*7) % 5 === 0) return;
+      if (d % 7 === 5 && toMin(start) > 13*60) return; // 週六只上早上
+      const isGroup = c.id === 'k4' && start === '19:00';
+      const isDuo = !isGroup && (d + ki + si) % 6 === 0;
+      const want = isGroup ? 3 + (d % 2) : isDuo ? 2 : 1;
+      const s = toMin(start), e = s + 55;
+      const busy = new Set(bookings.filter(b => b.date === date && toMin(b.start) < e && s < toMin(b.start) + b.dur).flatMap(b => b.memberIds));
+      const ids = [];
+      for (let tries = 0; ids.length < want && tries < 24; tries++) { const m = members[ptr++ % members.length]; if (!busy.has(m.id) && !ids.includes(m.id)) ids.push(m.id); }
+      if (!ids.length) return;
+      let typeId = isGroup ? 't3' : isDuo ? 't2' : 't1';
+      if (ids.includes('m4') && !isGroup && !isDuo) typeId = 't4';
+      const past = new Date(`${date}T${start}`) < now;
+      n++;
+      const status = !past ? 'booked' : n % 11 === 0 ? 'leave' : n % 29 === 0 ? 'noshow' : 'done';
+      bookings.push({ id:uid('b'), date, start, dur:55, coachId:c.id, roomId:roomOf[c.id], typeId, memberIds:ids, status, note:'' });
+    }));
+  }
+  const extra = [6,2,9,0,1,4,7,3,5,8,1,6];
+  members.forEach((m,i) => {
+    const used = bookings.filter(b => b.memberIds.includes(m.id) && STATUS[b.status].charge).length;
+    m.packages.push({ id:uid('p'), date: ymd(addDays(TODAY, -20 - i*4)), count: used + extra[i], note:'課卡（範例）' });
+  });
+  return { sample:true, settings:{ studio:'Core & Breath 皮拉提斯', open:'07:00', close:'22:00' }, coaches, rooms, types, members, bookings };
+}
+
+let db = load() || seed();
+const ui = { view:'day', date: ymd(TODAY), hidden:new Set(), focus:'', mq:'', mSel:null };
+
+const coachOf = id => db.coaches.find(c => c.id === id);
+const roomOf = id => db.rooms.find(r => r.id === id);
+const typeOf = id => db.types.find(t => t.id === id);
+const memberOf = id => db.members.find(m => m.id === id);
+const mName = id => memberOf(id)?.name || '（已刪除會員）';
+function credits(m){
+  const bought = m.packages.reduce((s,p) => s + Number(p.count||0), 0);
+  const used = db.bookings.filter(b => b.memberIds.includes(m.id) && STATUS[b.status].charge).length;
+  const upcoming = db.bookings.filter(b => b.memberIds.includes(m.id) && b.status === 'booked' && new Date(`${b.date}T${b.start}`) >= new Date()).length;
+  return { bought, used, left: bought - used, upcoming };
+}
+function conflicts(b, ignoreIds){
+  const s = toMin(b.start), e = s + Number(b.dur);
+  const out = [];
+  db.bookings.forEach(o => {
+    if (ignoreIds.includes(o.id) || o.date !== b.date || o.status === 'leave') return;
+    const os = toMin(o.start), oe = os + o.dur;
+    if (!(s < oe && os < e)) return;
+    const when = `${fmtMD(o.date)} ${o.start}`;
+    if (o.coachId === b.coachId) out.push(`${coachOf(o.coachId)?.name} 在 ${when} 已有課（${o.memberIds.map(mName).join('、')}）`);
+    else if (o.roomId === b.roomId) out.push(`${roomOf(o.roomId)?.name} 在 ${when} 已被 ${coachOf(o.coachId)?.name} 使用`);
+    b.memberIds.filter(id => o.memberIds.includes(id)).forEach(id => out.push(`${mName(id)} 在 ${when} 已有其他課程`));
+  });
+  return out;
+}
+
+// ===== ui primitives =====
 function toast(msg){ const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2400); }
 function modal(html, onMount){
   const layer = $('#layer');
   layer.innerHTML = `<div class="scrim"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
   const scrim = $('.scrim', layer);
+  const close = () => { layer.innerHTML = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
   scrim.addEventListener('click', e => { if (e.target === scrim || e.target.closest('[data-close]')) close(); });
-  function close(){ layer.innerHTML=''; }
   onMount && onMount($('.modal', layer), close);
 }
-function confirmBox(title, body, okText, fn, danger){
-  modal(`<h3>${title}</h3><div>${body}</div><div class="acts"><button class="btn ghost" data-close>返回</button><button class="btn ${danger?'danger':'primary'}" id="ok">${okText}</button></div>`,
+function confirmBox(title, body, okText, fn){
+  modal(`<h3>${title}</h3><div>${body}</div><div class="acts"><button class="btn" data-close>返回</button><button class="btn danger" id="ok">${okText}</button></div>`,
     (m, close) => $('#ok', m).onclick = () => { close(); fn(); });
 }
+function commit(msg){ save(); render(); if (msg) toast(msg); }
 
-// ---------- login & register ----------
-const ICON_LINE = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 4 3.6 7.3 8.4 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8-5.9C21.5 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg>`;
-const ICON_G = `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.3c0-.8-.1-1.5-.2-2.3H12v4.3h5.9c-.3 1.4-1 2.5-2.2 3.3v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.1z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.9C3.9 20.6 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.8 14.1c-.2-.7-.4-1.4-.4-2.1s.1-1.4.4-2.1V7H2.1C1.4 8.5 1 10.2 1 12s.4 3.5 1.1 5l3.7-2.9z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2C17.5 2.1 15 1 12 1 7.7 1 3.9 3.4 2.1 7l3.7 2.9c.9-2.6 3.3-4.5 6.2-4.5z"/></svg>`;
-
-function renderLogin(){
-  $('#root').innerHTML = `
-  <div class="login">
-    <div class="brand"><div class="mark">C</div><h1>${esc(state.settings.studio)}</h1><p class="muted">登入後即可查看課表、預約課程與管理堂數。</p></div>
-    <div class="oauth">
-      <button class="line" id="login-line">${ICON_LINE}使用 LINE 登入</button>
-      <button id="login-google">${ICON_G}使用 Google 帳號登入</button>
-    </div>
-    <p class="small muted">第一次登入會請你填寫基本資料完成註冊。本系統不會取得你的 LINE 聊天內容或 Gmail 信件。</p>
-    <button class="btn ghost sm" id="login-admin" style="justify-self:center">管理員登入</button>
-  </div>`;
-  $('#login-line').onclick = () => renderRegister('LINE');
-  $('#login-google').onclick = () => renderRegister('Google');
-  $('#login-admin').onclick = renderAdminLogin;
-}
-function renderRegister(provider){
-  const pre = provider === 'LINE' ? { name:'林雅婷', email:'' } : { name:'Jason Lin', email:'jason@gmail.com' };
-  $('#root').innerHTML = `
-  <div class="login">
-    <div class="brand"><span class="pill acc">${provider} 驗證成功</span><h1>完成會員註冊</h1><p class="muted">這些資料只需填寫一次，之後以 ${provider} 一鍵登入。</p></div>
-    <form class="form" id="reg">
-      <div class="field"><label for="r-name">姓名</label><input id="r-name" required value="${esc(pre.name)}"></div>
-      <div class="field"><label for="r-phone">手機號碼</label><input id="r-phone" required inputmode="tel" placeholder="09xx-xxx-xxx" value="0912-345-678"></div>
-      <div class="field"><label for="r-email">Email${provider==='Google'?'（由 Google 帶入）':'（選填）'}</label><input id="r-email" type="email" value="${esc(pre.email)}" ${provider==='Google'?'readonly':''}></div>
-      <div class="field"><label for="r-health">身體狀況備註（選填，僅教練可見）</label><input id="r-health" placeholder="例：下背舊傷、懷孕 20 週"></div>
-      <label class="check"><input type="checkbox" id="r-agree" required checked> 我已閱讀並同意上課須知與取消規則（開課前 ${state.settings.cancelHours} 小時內取消將扣除堂數）</label>
-      <button class="btn primary" type="submit">完成註冊並進入</button>
-      <button class="btn ghost" type="button" id="reg-back">返回</button>
-    </form>
-  </div>`;
-  $('#reg-back').onclick = renderLogin;
-  $('#reg').onsubmit = e => {
-    e.preventDefault();
-    const m = state.members[0];
-    m.name = $('#r-name').value.trim() || m.name; m.phone = $('#r-phone').value; m.provider = provider;
-    loginAs('member'); toast('註冊完成，歡迎加入！');
-  };
-}
-function renderAdminLogin(){
-  modal(`<h3>管理員登入</h3><p class="small muted">正式版建議：管理員同樣用 Google 登入，再由系統比對白名單 Email 授權後台權限。</p>
-    <div class="oauth"><button id="adm-g">${ICON_G}以 Google 管理員帳號登入</button></div>
-    <div class="acts"><button class="btn ghost" data-close>取消</button></div>`,
-    (m, close) => $('#adm-g', m).onclick = () => { close(); loginAs('admin'); });
-}
-function loginAs(role){
-  state.role = role;
-  state.user = role === 'member' ? state.members[0] : { name:'管理員 Vivian' };
-  $('#whoami').textContent = role === 'member' ? `會員 ${state.user.name}` : state.user.name;
-  render();
-}
-
-// ---------- member side ----------
-function classStatus(c, mid){
-  const now = new Date();
-  if (startOf(c) < now) return 'past';
-  if (c.booked.includes(mid)) return 'booked';
-  if (c.wait.includes(mid)) return 'waiting';
-  if (c.booked.length >= c.cap) return 'full';
-  return 'open';
-}
-function seats(c){ return `<div class="seats" aria-label="已預約 ${c.booked.length} / ${c.cap}">${Array.from({length:c.cap},(_,i)=>`<i class="${i<c.booked.length?'f':''}"></i>`).join('')}</div>`; }
-
-function renderMember(){
-  const u = state.user;
-  const tab = state.memberTab;
-  let body = '';
-  if (tab === 'schedule') {
-    const days = Array.from({length:7}, (_,i)=>addDays(today,i));
-    const list = state.classes.filter(c => c.date === state.day).sort((a,b)=>a.start.localeCompare(b.start));
-    body = `
-      <div class="days">${days.map(d=>{const k=ymd(d);return `<button class="day ${k===state.day?'on':''}" data-day="${k}"><div class="small">${k===ymd(today)?'今天':'週'+WD[d.getDay()]}</div><div class="d">${d.getDate()}</div></button>`}).join('')}</div>
-      <div class="list">${list.length ? list.map(c => {
-        const st = classStatus(c, u.id);
-        const left = c.cap - c.booked.length;
-        const btn = {
-          open:`<button class="btn primary sm" data-book="${c.id}">預約</button>`,
-          booked:`<button class="btn sm" data-cancel="${c.id}">取消預約</button>`,
-          full: state.settings.waitlist ? `<button class="btn sm" data-wait="${c.id}">候補</button>` : `<span class="pill bad">額滿</span>`,
-          waiting:`<button class="btn sm" data-unwait="${c.id}">取消候補</button>`,
-          past:`<span class="pill">已結束</span>`
-        }[st];
-        return `<div class="cls">
-          <div><div class="t">${c.start}</div><div class="small muted num">${c.dur} 分</div></div>
-          <div class="info"><div class="name">${esc(c.title)}</div><div class="small muted">${esc(c.coach)} 老師 · ${esc(c.room)}</div>
-            ${seats(c)}<div class="small ${left<=1?'':'muted'}" style="${left<=1&&left>0?'color:var(--warn)':''}">${st==='booked'?'<span class="pill ok">已預約</span>':st==='waiting'?`<span class="pill warn">候補第 ${c.wait.indexOf(u.id)+1} 位</span>`:left>0?`剩 ${left} 位`:'已額滿'}</div></div>
-          <div>${btn}</div></div>`;
-      }).join('') : `<div class="empty">這天沒有排課，看看其他日期吧。</div>`}</div>`;
-  } else if (tab === 'mine') {
-    const mine = state.classes.filter(c => c.booked.includes(u.id) || c.wait.includes(u.id)).sort((a,b)=>startOf(a)-startOf(b));
-    body = `<div class="sec"><h2 style="font-size:20px">我的預約</h2>
-      ${mine.length ? mine.map(c => `<div class="cls"><div><div class="t">${c.start}</div><div class="small muted">${fmtDate(c.date)}</div></div>
-        <div class="info"><div class="name">${esc(c.title)}</div><div class="small muted">${esc(c.coach)} 老師 · ${esc(c.room)}</div>
-        ${c.wait.includes(u.id)?`<span class="pill warn">候補第 ${c.wait.indexOf(u.id)+1} 位</span>`:'<span class="pill ok">已預約</span>'}</div>
-        <div>${c.wait.includes(u.id)?`<button class="btn sm" data-unwait="${c.id}">取消候補</button>`:`<button class="btn sm" data-cancel="${c.id}">取消</button>`}</div></div>`).join('')
-        : `<div class="empty">目前沒有預約。到「課表」挑一堂課吧。</div>`}
-      <p class="small muted">開課前 ${state.settings.cancelHours} 小時以上取消會退回堂數；${state.settings.cancelHours} 小時內取消將扣除 1 堂。</p></div>`;
-  } else {
-    body = `<div class="sec"><h2 style="font-size:20px">會員資料</h2>
-      <div class="card kv"><span class="muted">姓名</span><span>${esc(u.name)}</span><span class="muted">登入方式</span><span>${u.provider}</span>
-        <span class="muted">手機</span><span class="num">${esc(u.phone)}</span><span class="muted">方案</span><span>${esc(u.plan)}</span>
-        <span class="muted">剩餘堂數</span><span class="num">${u.credits} 堂</span><span class="muted">到期日</span><span class="num">${u.expire}</span></div>
-      <div class="card"><div class="label">通知</div><p style="margin:6px 0 0">預約成功、候補遞補、開課前一天提醒，會透過 LINE 官方帳號通知你。</p></div>
-      <button class="btn ghost" id="logout">登出</button></div>`;
-  }
-  $('#root').innerHTML = `<div class="app">
-    <div class="mhead"><div><div class="label">${esc(state.settings.studio)}</div><h2 style="font-size:22px">嗨，${esc(u.name)}</h2></div>
-      <div class="credit"><div class="n num">${u.credits}</div><div class="small muted">剩餘堂數</div></div></div>
-    ${body}</div>
-    <nav class="tabbar">${[['schedule','課表'],['mine','我的預約'],['me','會員']].map(([k,l])=>`<button class="${k===tab?'on':''}" data-mtab="${k}">${l}</button>`).join('')}</nav>`;
-}
-function book(id){
-  const c = state.classes.find(x=>x.id===id), u = state.user;
-  if (u.credits <= 0) return toast('堂數不足，請洽櫃台購買課卡');
-  confirmBox('確認預約', `<p style="margin:0"><b>${esc(c.title)}</b><br>${fmtDate(c.date)} ${c.start}–${endTime(c)}・${esc(c.coach)} 老師</p><p class="small muted">將使用 1 堂，剩餘 ${u.credits-1} 堂。</p>`, '確認預約', () => {
-    c.booked.push(u.id); u.credits--; render(); toast('預約成功，已傳送 LINE 通知');
-  });
-}
-function cancel(id){
-  const c = state.classes.find(x=>x.id===id), u = state.user;
-  const hrs = (startOf(c) - new Date())/36e5, late = hrs < state.settings.cancelHours;
-  confirmBox('取消預約', `<p style="margin:0">${esc(c.title)}・${fmtDate(c.date)} ${c.start}</p><p class="small ${late?'':'muted'}" style="${late?'color:var(--bad)':''}">${late?`距開課不到 ${state.settings.cancelHours} 小時，取消後不退還堂數。`:'取消後將退回 1 堂。'}</p>`, '確認取消', () => {
-    c.booked = c.booked.filter(x=>x!==u.id); if (!late) u.credits++;
-    promote(c); render(); toast('已取消預約');
-  }, true);
-}
-function promote(c){ // 候補自動遞補
-  while (c.wait.length && c.booked.length < c.cap) { const m = c.wait.shift(); c.booked.push(m); const mm = state.members.find(x=>x.id===m); if (mm) mm.credits--; }
-}
-
-// ---------- admin side ----------
-const ADMIN_TABS = [['dash','總覽'],['classes','課程排程'],['members','會員管理'],['bookings','預約紀錄'],['settings','系統設定']];
-function renderAdmin(){
-  const t = state.adminTab;
-  $('#root').innerHTML = `<div class="admin">
-    <aside class="side"><h2>${esc(state.settings.studio)}<div class="small muted" style="font-family:var(--f-body);font-weight:400">管理後台</div></h2>
-      ${ADMIN_TABS.map(([k,l])=>`<button class="${k===t?'on':''}" data-atab="${k}">${l}</button>`).join('')}
-      <div class="spacer"></div><button id="logout">登出</button></aside>
-    <main class="work">${({dash:aDash,classes:aClasses,members:aMembers,bookings:aBookings,settings:aSettings})[t]()}</main></div>`;
-}
-function aDash(){
-  const t = ymd(today), week = state.classes;
-  const todays = week.filter(c=>c.date===t).sort((a,b)=>a.start.localeCompare(b.start));
-  const seatsTot = week.reduce((s,c)=>s+c.cap,0), bookedTot = week.reduce((s,c)=>s+c.booked.length,0);
-  const low = state.members.filter(m=>m.credits<=1 && m.plan!=='月費無限');
-  return `<div class="work-head"><h1>總覽</h1><span class="muted">${fmtDate(t)}</span></div>
-  <div class="stats">
-    <div class="stat"><div class="label">今日課程</div><div class="v num">${todays.length}</div></div>
-    <div class="stat"><div class="label">7 日預約人次</div><div class="v num">${bookedTot}</div></div>
-    <div class="stat"><div class="label">7 日滿班率</div><div class="v num">${Math.round(bookedTot/seatsTot*100)}%</div></div>
-    <div class="stat"><div class="label">會員數</div><div class="v num">${state.members.length}</div></div>
-  </div>
-  <h2 style="font-size:18px">今日課程</h2>
-  <div class="tbl-wrap"><table><thead><tr><th>時間</th><th>課程</th><th>教練</th><th>教室</th><th>預約</th><th></th></tr></thead><tbody>
-  ${todays.map(c=>`<tr><td class="num">${c.start}–${endTime(c)}</td><td>${esc(c.title)}</td><td>${esc(c.coach)}</td><td>${esc(c.room)}</td>
-    <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><span style="width:${c.booked.length/c.cap*100}%"></span></div><span class="num small">${c.booked.length}/${c.cap}</span>${c.wait.length?`<span class="pill warn">候補 ${c.wait.length}</span>`:''}</div></td>
-    <td><button class="btn sm" data-roster="${c.id}">點名名單</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">今天沒有課程</td></tr>'}
-  </tbody></table></div>
-  <h2 style="font-size:18px">需要留意</h2>
-  <div class="tbl-wrap"><table><thead><tr><th>會員</th><th>方案</th><th>剩餘堂數</th><th>到期日</th><th>狀態</th></tr></thead><tbody>
-  ${low.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(m.plan)}</td><td class="num">${m.credits}</td><td class="num">${m.expire}</td><td><span class="pill warn">堂數即將用完</span></td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-function aClasses(){
-  const f = state.classFilter || 'all';
-  const list = state.classes.filter(c=>f==='all'||c.date===f).sort((a,b)=>startOf(a)-startOf(b));
-  const dates = [...new Set(state.classes.map(c=>c.date))].sort();
-  return `<div class="work-head"><h1>課程排程</h1><div class="filters">
-    <select id="cls-filter"><option value="all">全部日期</option>${dates.map(d=>`<option value="${d}" ${d===f?'selected':''}>${fmtDate(d)}</option>`).join('')}</select>
-    <button class="btn primary" data-edit="">＋ 新增課程</button></div></div>
-  <div class="tbl-wrap"><table><thead><tr><th>日期</th><th>時間</th><th>課程</th><th>教練</th><th>教室</th><th>名額</th><th></th></tr></thead><tbody>
-  ${list.map(c=>`<tr><td class="num">${fmtDate(c.date)}</td><td class="num">${c.start}–${endTime(c)}</td><td>${esc(c.title)}</td><td>${esc(c.coach)}</td><td class="small">${esc(c.room)}</td>
-    <td class="num">${c.booked.length}/${c.cap}${c.booked.length>=c.cap?' <span class="pill bad">滿</span>':''}</td>
-    <td><div class="row-actions"><button class="btn sm" data-roster="${c.id}">名單</button><button class="btn sm" data-edit="${c.id}">編輯</button><button class="btn sm danger" data-del="${c.id}">刪除</button></div></td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-function editClass(id){
-  const c = state.classes.find(x=>x.id===id) || { title:TYPES[0], coach:COACHES[0], room:ROOMS[0], date:ymd(addDays(today,1)), start:'10:00', dur:55, cap:6, booked:[], wait:[] };
-  const opt = (arr,v) => arr.map(a=>`<option ${a===v?'selected':''}>${esc(a)}</option>`).join('');
-  modal(`<h3>${id?'編輯課程':'新增課程'}</h3><form class="form" id="cf">
-    <div class="field"><label for="f-title">課程類型</label><select id="f-title">${opt(TYPES,c.title)}</select></div>
-    <div class="grid2"><div class="field"><label for="f-coach">教練</label><select id="f-coach">${opt(COACHES,c.coach)}</select></div>
-    <div class="field"><label for="f-room">教室</label><select id="f-room">${opt(ROOMS,c.room)}</select></div></div>
-    <div class="grid2"><div class="field"><label for="f-date">日期</label><input id="f-date" type="date" value="${c.date}" required></div>
-    <div class="field"><label for="f-start">開始時間</label><input id="f-start" type="time" value="${c.start}" required></div></div>
-    <div class="grid2"><div class="field"><label for="f-dur">長度（分鐘）</label><input id="f-dur" type="number" min="15" step="5" value="${c.dur}"></div>
-    <div class="field"><label for="f-cap">名額</label><input id="f-cap" type="number" min="1" max="30" value="${c.cap}"></div></div>
-    ${id?'':`<label class="check"><input type="checkbox" id="f-repeat"> 每週重複，連續 4 週</label>`}
-    <div class="acts"><button type="button" class="btn ghost" data-close>取消</button><button class="btn primary" type="submit">儲存</button></div></form>`,
-  (m, close) => $('#cf', m).onsubmit = e => {
-    e.preventDefault();
-    const v = { title:$('#f-title').value, coach:$('#f-coach').value, room:$('#f-room').value, date:$('#f-date').value, start:$('#f-start').value, dur:+$('#f-dur').value, cap:+$('#f-cap').value };
-    if (v.cap < c.booked.length) return toast(`已有 ${c.booked.length} 人預約，名額不可低於此數`);
-    if (id) Object.assign(c, v);
-    else { const n = $('#f-repeat')?.checked ? 4 : 1; for (let i=0;i<n;i++) state.classes.push({ ...v, id:nid('c'), date:ymd(addDays(new Date(v.date+'T00:00'), i*7)), booked:[], wait:[] }); }
-    close(); render(); toast(id?'課程已更新，已通知預約會員':'課程已新增');
-  });
-}
-function roster(id){
-  const c = state.classes.find(x=>x.id===id);
-  modal(`<h3>${esc(c.title)}</h3><p class="small muted" style="margin:0">${fmtDate(c.date)} ${c.start}・${esc(c.coach)} 老師・${c.booked.length}/${c.cap}</p>
-    <div class="tbl-wrap"><table style="min-width:0"><tbody>${c.booked.map((m,i)=>`<tr><td class="num">${i+1}</td><td>${esc(memberName(m))}</td><td><label class="check"><input type="checkbox" id="att-${c.id}-${i}"> 已到</label></td></tr>`).join('') || '<tr><td class="muted">尚無預約</td></tr>'}
-    ${c.wait.map((m,i)=>`<tr><td></td><td>${esc(memberName(m))}</td><td><span class="pill warn">候補 ${i+1}</span></td></tr>`).join('')}</tbody></table></div>
-    <div class="acts"><button class="btn primary" data-close>完成</button></div>`);
-}
-function aMembers(){
-  const q = (state.memberQ||'').trim();
-  const list = state.members.filter(m=>!q||m.name.includes(q)||m.phone.includes(q));
-  return `<div class="work-head"><h1>會員管理</h1><div class="filters"><input id="mem-q" placeholder="搜尋姓名或手機" value="${esc(q)}"></div></div>
-  <div class="tbl-wrap"><table><thead><tr><th>姓名</th><th>登入方式</th><th>手機</th><th>方案</th><th>剩餘堂數</th><th>到期日</th><th>狀態</th><th></th></tr></thead><tbody>
-  ${list.map(m=>`<tr><td>${esc(m.name)}</td><td><span class="pill ${m.provider==='LINE'?'ok':''}">${m.provider}</span></td><td class="num">${esc(m.phone)}</td><td>${esc(m.plan)}</td>
-    <td><span class="stepper"><button data-cr="${m.id}|-1" aria-label="減少堂數">−</button><span class="num" style="min-width:24px;text-align:center">${m.credits}</span><button data-cr="${m.id}|1" aria-label="增加堂數">＋</button></span></td>
-    <td class="num">${m.expire}</td><td>${m.status==='active'?'<span class="pill ok">正常</span>':'<span class="pill">暫停</span>'}</td>
-    <td><div class="row-actions"><button class="btn sm" data-plan="${m.id}">儲值課卡</button><button class="btn sm" data-toggle="${m.id}">${m.status==='active'?'暫停':'恢復'}</button></div></td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-function topUp(id){
-  const m = state.members.find(x=>x.id===id);
-  modal(`<h3>儲值課卡｜${esc(m.name)}</h3><form class="form" id="pf">
-    <div class="field"><label for="p-plan">方案</label><select id="p-plan"><option value="1|單堂">單堂（1 堂，30 天）</option><option value="10|10 堂課卡">10 堂課卡（90 天）</option><option value="20|20 堂課卡">20 堂課卡（180 天）</option></select></div>
-    <div class="field"><label for="p-pay">付款方式</label><select id="p-pay"><option>現金</option><option>轉帳</option><option>刷卡</option><option>LINE Pay</option></select></div>
-    <div class="acts"><button type="button" class="btn ghost" data-close>取消</button><button class="btn primary">確認儲值</button></div></form>`,
-  (mm, close) => $('#pf', mm).onsubmit = e => {
-    e.preventDefault(); const [n, name] = $('#p-plan').value.split('|');
-    const days = {1:30,10:90,20:180}[n]; m.credits += +n; m.plan = name; m.expire = ymd(addDays(today, days)); m.status='active';
-    close(); render(); toast(`已為 ${m.name} 加值 ${n} 堂`);
-  });
-}
-function aBookings(){
-  const rows = [];
-  state.classes.forEach(c => { c.booked.forEach(m=>rows.push({c,m,s:'已預約'})); c.wait.forEach(m=>rows.push({c,m,s:'候補'})); });
-  rows.sort((a,b)=>startOf(a.c)-startOf(b.c));
-  const real = rows.filter(r=>!String(r.m).startsWith('guest'));
-  return `<div class="work-head"><h1>預約紀錄</h1><span class="muted small">共 ${real.length} 筆會員預約（不含現場名額）</span></div>
-  <div class="tbl-wrap"><table><thead><tr><th>會員</th><th>課程</th><th>上課時間</th><th>狀態</th><th></th></tr></thead><tbody>
-  ${real.map(r=>`<tr><td>${esc(memberName(r.m))}</td><td>${esc(r.c.title)}・${esc(r.c.coach)}</td><td class="num">${fmtDate(r.c.date)} ${r.c.start}</td>
-    <td><span class="pill ${r.s==='候補'?'warn':'ok'}">${r.s}</span></td><td><button class="btn sm danger" data-acancel="${r.c.id}|${r.m}">代為取消</button></td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-function aSettings(){
-  const s = state.settings;
-  return `<div class="work-head"><h1>系統設定</h1></div>
-  <form class="card form" id="sf" style="max-width:560px">
-    <div class="field"><label for="s-name">教室名稱</label><input id="s-name" value="${esc(s.studio)}"></div>
-    <div class="grid2"><div class="field"><label for="s-cancel">免扣堂取消期限（開課前幾小時）</label><input id="s-cancel" type="number" min="0" value="${s.cancelHours}"></div>
-    <div class="field"><label for="s-open">開放預約天數</label><input id="s-open" type="number" min="1" value="${s.openDays}"></div></div>
-    <label class="check"><input type="checkbox" id="s-wait" ${s.waitlist?'checked':''}> 開放候補，有人取消時自動遞補並通知</label>
-    <label class="check"><input type="checkbox" id="s-line" ${s.notifyLine?'checked':''}> 透過 LINE 官方帳號發送預約、取消與上課前提醒</label>
-    <div><div class="label" style="margin-bottom:6px">管理員帳號（Google）</div><div class="small">vivian.studio@gmail.com・ken.coach@gmail.com</div></div>
-    <button class="btn primary" style="justify-self:start">儲存設定</button></form>`;
-}
-
-// ---------- render & events ----------
+// ===== render: shell =====
 function render(){
-  if (!state.role) return renderLogin();
-  state.role === 'member' ? renderMember() : renderAdmin();
+  const v = ui.view;
+  $('#root').innerHTML = `
+    <header class="top">
+      <div class="brand"><span class="label">${esc(db.settings.studio)}</span><h1>排課表</h1></div>
+      <div class="seg" role="tablist">${[['day','日'],['week','週'],['members','會員'],['settings','設定']].map(([k,l])=>`<button class="${v===k?'on':''}" data-view="${k}">${l}</button>`).join('')}</div>
+      <button class="btn primary" data-new="1">＋ 新增預約</button>
+    </header>
+    ${db.sample ? `<div class="banner" style="margin-top:10px">目前是範例資料，可以隨意操作。正式使用前請清除範例。<button class="btn sm" id="clear-sample">清除範例資料</button></div>` : ''}
+    ${v==='day'||v==='week' ? calendarView() : v==='members' ? memberView() : settingsView()}`;
 }
+
+// ===== calendar =====
+const PX = 1.15; // px per minute
+function visibleCoaches(){ return db.coaches.filter(c => !ui.hidden.has(c.id)); }
+function calendarView(){
+  const isDay = ui.view === 'day';
+  const d = parse(ui.date);
+  const ws = wkStart(d);
+  const label = isDay ? `${d.getMonth()+1} 月 ${d.getDate()} 日・週${WD[d.getDay()]}` : `${ws.getMonth()+1}/${ws.getDate()} – ${addDays(ws,6).getMonth()+1}/${addDays(ws,6).getDate()}`;
+  const focusM = ui.focus && memberOf(ui.focus);
+  let focusInfo = '';
+  if (focusM) {
+    const cr = credits(focusM);
+    const range = isDay ? [ui.date] : Array.from({length:7},(_,i)=>ymd(addDays(ws,i)));
+    const cnt = db.bookings.filter(b => range.includes(b.date) && b.memberIds.includes(focusM.id)).length;
+    focusInfo = `<div class="focusinfo"><b>${esc(focusM.name)}</b>：${isDay?'今天':'本週'} ${cnt} 堂・剩餘 <b class="num">${cr.left}</b> 堂・之後已預約 ${cr.upcoming} 堂　<button class="btn sm" data-new="1" data-nm="${focusM.id}">為她/他新增預約</button> <button class="btn sm" data-mopen="${focusM.id}">查看會員</button></div>`;
+  }
+  return `
+    <div class="bar">
+      <div class="datenav">
+        <button class="btn icon" data-shift="-1" aria-label="上一${isDay?'天':'週'}">‹</button>
+        <button class="btn" data-today="1">今天</button>
+        <button class="btn icon" data-shift="1" aria-label="下一${isDay?'天':'週'}">›</button>
+        <h2 class="num">${label}</h2>
+        <input type="date" id="jump" value="${ui.date}" aria-label="跳到日期">
+      </div>
+      <div class="chips" aria-label="顯示的教練">${db.coaches.map(c=>`<button class="chip ${ui.hidden.has(c.id)?'off':''}" data-coach="${c.id}" style="--cc:var(--c${c.color})"><span class="dot"></span>${esc(c.name)}</button>`).join('')}</div>
+      <div class="focus"><label for="focus" class="small muted">標示會員</label>
+        <select id="focus"><option value="">全部</option>${db.members.map(m=>`<option value="${m.id}" ${m.id===ui.focus?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>
+    </div>
+    ${focusInfo}
+    ${!db.coaches.length ? `<div class="cal-wrap"><div class="empty">還沒有教練。請到「設定」新增教練後開始排課。</div></div>` : isDay ? dayGrid() : weekGrid(ws)}`;
+}
+function hourMarks(open, close, H){
+  let s = '';
+  for (let m = Math.ceil(open/60)*60; m <= close; m += 60) s += `<span style="top:${(m-open)*PX}px">${fromMin(m)}</span>`;
+  return `<div class="times" style="height:${H}px">${s}</div>`;
+}
+function nowLine(date, open, close){
+  if (date !== ymd(TODAY)) return '';
+  const n = new Date(), m = n.getHours()*60 + n.getMinutes();
+  if (m < open || m > close) return '';
+  return `<div class="nowline" style="top:${(m-open)*PX}px"></div>`;
+}
+function blockHTML(b, open, style, withCoach){
+  const c = coachOf(b.coachId), t = typeOf(b.typeId), r = roomOf(b.roomId);
+  const names = b.memberIds.map(mName).join('、') || '（未指定會員）';
+  const dim = ui.focus && !b.memberIds.includes(ui.focus);
+  const hit = ui.focus && !dim;
+  const top = (toMin(b.start) - open) * PX, h = Math.max(b.dur * PX - 2, 20);
+  const meta = [withCoach ? c?.name : null, t?.name, r?.name].filter(Boolean).join('・');
+  return `<button class="blk st-${b.status} ${dim?'dim':''} ${hit?'hit':''}" data-bk="${b.id}"
+    style="top:${top}px;height:${h}px;${style};--cc:var(--c${c?.color ?? 0})"
+    title="${esc(`${b.start}–${endOf(b)} ${names}\n${meta}${b.note ? '\n備註：'+b.note : ''}`)}">
+    <span class="b-time">${b.start}–${endOf(b)}</span><span class="b-names">${esc(names)}</span><span class="b-meta">${esc(meta)}</span>
+    ${b.status!=='booked'?`<span class="b-st">${STATUS[b.status].label}</span>`:''}</button>`;
+}
+function dayGrid(){
+  const open = toMin(db.settings.open), close = toMin(db.settings.close), H = (close-open)*PX;
+  const cs = visibleCoaches();
+  if (!cs.length) return `<div class="cal-wrap"><div class="empty">所有教練都被隱藏了，點上方教練名稱即可顯示。</div></div>`;
+  const today = ui.date === ymd(TODAY);
+  const heads = cs.map(c => {
+    const n = db.bookings.filter(b => b.date===ui.date && b.coachId===c.id && b.status!=='leave').length;
+    return `<div class="head" style="--cc:var(--c${c.color})"><span class="dot"></span><b>${esc(c.name)}</b><span class="n small muted num">${n} 堂</span></div>`;
+  }).join('');
+  const lanes = cs.map(c => {
+    const list = db.bookings.filter(b => b.date===ui.date && b.coachId===c.id).sort((a,b)=>a.start.localeCompare(b.start));
+    return `<div class="lane ${today?'today':''}" data-ld="${ui.date}" data-lc="${c.id}" style="height:${H}px;--hour:${60*PX}px">${list.map(b=>blockHTML(b, open, 'left:3px;right:3px', false)).join('')}${nowLine(ui.date, open, close)}</div>`;
+  }).join('');
+  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(${cs.length},minmax(150px,1fr))"><div class="head"></div>${heads}${hourMarks(open,close,H)}${lanes}</div></div>`;
+}
+function layout(list){
+  const res = []; let cluster = [], end = -1;
+  const flush = () => { const cols = []; cluster.forEach(it => { let i = cols.findIndex(e => e <= it.s); if (i < 0) { i = cols.length; cols.push(0); } cols[i] = it.e; it.col = i; }); cluster.forEach(it => it.n = cols.length); res.push(...cluster); cluster = []; end = -1; };
+  list.forEach(b => { const s = toMin(b.start), e = s + b.dur; if (cluster.length && s >= end) flush(); cluster.push({b,s,e}); end = Math.max(end, e); });
+  if (cluster.length) flush();
+  return res;
+}
+function weekGrid(ws){
+  const open = toMin(db.settings.open), close = toMin(db.settings.close), H = (close-open)*PX;
+  const show = new Set(visibleCoaches().map(c=>c.id));
+  const days = Array.from({length:7},(_,i)=>ymd(addDays(ws,i)));
+  const heads = days.map(ds => {
+    const d = parse(ds), n = db.bookings.filter(b=>b.date===ds && show.has(b.coachId) && b.status!=='leave').length;
+    return `<div class="head ${ds===ymd(TODAY)?'today':''}"><button class="dhead" data-goday="${ds}" title="切換到日檢視"><span class="wd">週${WD[d.getDay()]}</span><span class="dd">${d.getMonth()+1}/${d.getDate()}</span></button><span class="n small muted num">${n} 堂</span></div>`;
+  }).join('');
+  const cols = days.map(ds => {
+    const list = db.bookings.filter(b => b.date===ds && show.has(b.coachId)).sort((a,b)=>a.start.localeCompare(b.start) || a.coachId.localeCompare(b.coachId));
+    const blocks = layout(list).map(it => { const w = 100/it.n; return blockHTML(it.b, open, `left:calc(${it.col*w}% + 2px);width:calc(${w}% - 4px)`, true); }).join('');
+    return `<div class="lane ${ds===ymd(TODAY)?'today':''}" data-ld="${ds}" style="height:${H}px;--hour:${60*PX}px">${blocks}${nowLine(ds, open, close)}</div>`;
+  }).join('');
+  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(7,minmax(150px,1fr))"><div class="head"></div>${heads}${hourMarks(open,close,H)}${cols}</div></div>`;
+}
+
+// ===== booking editor =====
+function openBooking(opts = {}){
+  const ex = opts.id ? db.bookings.find(b => b.id === opts.id) : null;
+  const t0 = db.types[0];
+  const d = ex ? JSON.parse(JSON.stringify(ex)) : {
+    date: opts.date || ui.date, start: opts.start || '10:00', dur: t0?.dur || 55,
+    coachId: opts.coachId || visibleCoaches()[0]?.id || db.coaches[0]?.id, roomId: db.rooms[0]?.id, typeId: t0?.id,
+    memberIds: opts.memberIds || [], status:'booked', note:''
+  };
+  if (!ex && opts.coachId) { // 沿用該教練最常用的教室
+    const last = db.bookings.filter(b => b.coachId === opts.coachId).at(-1); if (last) d.roomId = last.roomId;
+  }
+  const opt = (arr, v) => arr.map(a => `<option value="${a.id}" ${a.id===v?'selected':''}>${esc(a.name)}</option>`).join('');
+  modal(`
+    <h3>${ex ? '編輯預約' : '新增預約'}</h3>
+    <form class="form" id="bf">
+      <div class="field"><label>會員</label>
+        <div class="mchips" id="b-mchips"></div>
+        <div class="addrow"><select id="b-madd" aria-label="加入會員"></select></div>
+        <div class="addrow"><input id="b-mnew" placeholder="新會員？輸入姓名後按「建立」"><button type="button" class="btn sm" id="b-mnew-btn">建立</button></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="b-type">課程類型</label><select id="b-type">${opt(db.types, d.typeId)}</select></div>
+        <div class="field"><label for="b-coach">教練</label><select id="b-coach">${opt(db.coaches, d.coachId)}</select></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label for="b-date">日期</label><input id="b-date" type="date" value="${d.date}" required></div>
+        <div class="field"><label for="b-start">開始</label><input id="b-start" type="time" step="300" value="${d.start}" required></div>
+        <div class="field"><label for="b-dur">分鐘</label><input id="b-dur" type="number" min="15" step="5" value="${d.dur}" required></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="b-room">教室／器械</label><select id="b-room">${opt(db.rooms, d.roomId)}</select></div>
+        ${ex ? `<div class="field"><label for="b-status">狀態</label><select id="b-status">${Object.entries(STATUS).map(([k,s])=>`<option value="${k}" ${k===d.status?'selected':''}>${s.label}${s.charge?'':'（不扣堂）'}</option>`).join('')}</select></div>`
+             : `<div class="field"><label for="b-repeat">每週重複</label><select id="b-repeat">${[1,2,4,6,8,10,12].map(n=>`<option value="${n}">${n===1?'不重複':`連續 ${n} 週`}</option>`).join('')}</select></div>`}
+      </div>
+      ${ex && ex.seriesId ? `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="b-series"> 同時套用到這個系列之後的課（時間、教練、教室、會員）</label>` : ''}
+      <div class="field"><label for="b-note">備註</label><input id="b-note" value="${esc(d.note)}" placeholder="例：今天加強側躺系列"></div>
+      <div id="b-warn"></div>
+      <div class="acts">
+        ${ex ? `<span class="left"><button type="button" class="btn danger" id="b-del">刪除</button>${ex.seriesId?`<button type="button" class="btn danger" id="b-del-series">刪除此堂及之後</button>`:''}</span>` : ''}
+        <button type="button" class="btn" data-close>取消</button><button class="btn primary" type="submit" id="b-save">儲存</button>
+      </div>
+    </form>`, (m, close) => {
+    const repeatN = () => Number($('#b-repeat', m)?.value || 1);
+    function readForm(){
+      d.typeId = $('#b-type', m).value; d.coachId = $('#b-coach', m).value; d.roomId = $('#b-room', m).value;
+      d.date = $('#b-date', m).value; d.start = $('#b-start', m).value; d.dur = Number($('#b-dur', m).value) || 55;
+      d.note = $('#b-note', m).value.trim(); if (ex) d.status = $('#b-status', m).value;
+    }
+    function drawMembers(){
+      $('#b-mchips', m).innerHTML = d.memberIds.length ? d.memberIds.map(id => `<span class="mchip">${esc(mName(id))}<button type="button" data-rm="${id}" aria-label="移除 ${esc(mName(id))}">×</button></span>`).join('') : `<span class="small muted">尚未加入會員</span>`;
+      $('#b-madd', m).innerHTML = `<option value="">＋ 從名單加入會員…</option>` + db.members.filter(x => !d.memberIds.includes(x.id)).map(x => `<option value="${x.id}">${esc(x.name)}（剩 ${credits(x).left} 堂）</option>`).join('');
+    }
+    function check(){
+      readForm();
+      const w = [];
+      if (!d.memberIds.length) w.push('還沒有加入會員');
+      const t = typeOf(d.typeId);
+      if (t && d.memberIds.length > t.cap) w.push(`${t.name} 上限 ${t.cap} 人，目前 ${d.memberIds.length} 人`);
+      const n = repeatN();
+      for (let i = 0; i < n; i++) {
+        const occ = { ...d, date: ymd(addDays(parse(d.date), i*7)) };
+        w.push(...conflicts(occ, ex ? [ex.id] : []));
+      }
+      d.memberIds.forEach(id => { const mm = memberOf(id); if (!mm) return; const left = credits(mm).left - (ex && ex.memberIds.includes(id) ? 0 : n); if (left < 0) w.push(`${mm.name} 堂數不足（排完會是 ${left} 堂），記得提醒續卡`); });
+      const box = $('#b-warn', m);
+      box.innerHTML = w.length ? `<div class="warns"><b>請留意</b>${w.map(x=>`<span>・${esc(x)}</span>`).join('')}</div>` : (d.memberIds.length ? `<div class="warns ok">時段沒有衝突${n>1?`，將建立 ${n} 堂課`:''}</div>` : '');
+      $('#b-save', m).textContent = w.some(x => x.includes('已有') || x.includes('使用')) ? '仍要儲存' : '儲存';
+    }
+    drawMembers(); check();
+    $('#b-type', m).addEventListener('change', () => { const t = typeOf($('#b-type', m).value); if (t) $('#b-dur', m).value = t.dur; check(); });
+    m.addEventListener('input', e => { if (e.target.id !== 'b-mnew') check(); });
+    m.addEventListener('change', e => { if (e.target.id === 'b-madd' && e.target.value) { d.memberIds.push(e.target.value); drawMembers(); check(); } else check(); });
+    m.addEventListener('click', e => { const rm = e.target.closest('[data-rm]'); if (rm) { d.memberIds = d.memberIds.filter(x => x !== rm.dataset.rm); drawMembers(); check(); } });
+    $('#b-mnew-btn', m).onclick = () => {
+      const name = $('#b-mnew', m).value.trim(); if (!name) return;
+      const nm = { id:uid('m'), name, phone:'', note:'', packages:[] }; db.members.push(nm); d.memberIds.push(nm.id);
+      $('#b-mnew', m).value = ''; save(); drawMembers(); check(); toast(`已建立會員 ${name}，可稍後到「會員」補資料`);
+    };
+    $('#bf', m).onsubmit = e => {
+      e.preventDefault(); readForm();
+      if (!d.coachId || !d.typeId) return toast('請先到「設定」建立教練與課程類型');
+      if (ex) {
+        const applySeries = $('#b-series', m)?.checked;
+        Object.assign(ex, d);
+        if (applySeries) db.bookings.filter(b => b.seriesId === ex.seriesId && b.id !== ex.id && b.date > ex.date).forEach(b => Object.assign(b, { start:d.start, dur:d.dur, coachId:d.coachId, roomId:d.roomId, typeId:d.typeId, memberIds:[...d.memberIds] }));
+        close(); commit('預約已更新');
+      } else {
+        const n = repeatN(), sid = n > 1 ? uid('s') : null;
+        for (let i = 0; i < n; i++) db.bookings.push({ ...d, memberIds:[...d.memberIds], id:uid('b'), date: ymd(addDays(parse(d.date), i*7)), ...(sid ? {seriesId:sid} : {}) });
+        close(); commit(n > 1 ? `已建立 ${n} 堂每週課程` : '預約已建立');
+      }
+    };
+    if (ex) {
+      $('#b-del', m).onclick = () => { close(); confirmBox('刪除這堂課？', `<p style="margin:0">${fmtMD(ex.date)} ${ex.start}・${esc(ex.memberIds.map(mName).join('、'))}</p><p class="small muted">若只是會員請假，建議把狀態改成「請假」保留紀錄。</p>`, '刪除', () => { db.bookings = db.bookings.filter(b => b !== ex); commit('已刪除'); }); };
+      if (ex.seriesId) $('#b-del-series', m).onclick = () => { const list = db.bookings.filter(b => b.seriesId === ex.seriesId && b.date >= ex.date); close(); confirmBox('刪除此堂及之後的課？', `<p style="margin:0">共 ${list.length} 堂（${fmtMD(ex.date)} 起，每週 ${ex.start}）。</p>`, `刪除 ${list.length} 堂`, () => { db.bookings = db.bookings.filter(b => !list.includes(b)); commit(`已刪除 ${list.length} 堂`); }); };
+    }
+  });
+}
+
+// ===== members =====
+function memberView(){
+  const q = ui.mq.trim();
+  const list = db.members.filter(m => !q || m.name.includes(q) || (m.phone||'').includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+  if (!ui.mSel || !memberOf(ui.mSel)) ui.mSel = list[0]?.id || null;
+  const sel = memberOf(ui.mSel);
+  return `<div class="mview">
+    <aside class="panel mlist">
+      <div class="tools"><input id="mq" placeholder="搜尋姓名或電話" value="${esc(ui.mq)}" aria-label="搜尋會員"><button class="btn sm" id="m-add">＋ 會員</button></div>
+      <ul>${list.map(m => { const l = credits(m).left; return `<li><button class="${m.id===ui.mSel?'on':''}" data-msel="${m.id}"><span>${esc(m.name)}</span><span class="pill ${l<=0?'bad':l<=2?'warn':''} num">剩 ${l}</span></button></li>`; }).join('') || '<li class="empty">找不到會員</li>'}</ul>
+    </aside>
+    <section class="panel">${sel ? memberDetail(sel) : '<div class="empty">還沒有會員，按「＋ 會員」新增。</div>'}</section>
+  </div>`;
+}
+function memberDetail(m){
+  const cr = credits(m), now = new Date();
+  const mine = db.bookings.filter(b => b.memberIds.includes(m.id)).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+  const up = mine.filter(b => new Date(`${b.date}T${b.start}`) >= now), past = mine.filter(b => new Date(`${b.date}T${b.start}`) < now).reverse().slice(0, 12);
+  const row = b => { const c = coachOf(b.coachId); return `<tr class="click" data-bk="${b.id}"><td class="num">${fmtMD(b.date)}</td><td class="num">${b.start}–${endOf(b)}</td><td><span style="display:inline-flex;align-items:center;gap:6px;--cc:var(--c${c?.color??0})"><span class="dot"></span>${esc(c?.name)}</span></td><td>${esc(typeOf(b.typeId)?.name)}</td><td>${esc(roomOf(b.roomId)?.name)}</td><td><span class="pill ${b.status==='done'?'ok':b.status==='noshow'?'bad':b.status==='leave'?'warn':''}">${STATUS[b.status].label}</span></td></tr>`; };
+  const tbl = rows => rows.length ? `<div class="tbl"><table><thead><tr><th>日期</th><th>時間</th><th>教練</th><th>課程</th><th>教室</th><th>狀態</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>` : `<p class="muted small" style="margin:0">沒有紀錄</p>`;
+  return `<div class="mdetail">
+    <div class="mhead"><div><h2>${esc(m.name)}</h2><div class="muted small num">${esc(m.phone || '未填電話')}${m.note ? `・${esc(m.note)}` : ''}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-new="1" data-nm="${m.id}">＋ 為此會員排課</button><button class="btn" data-mfocus="${m.id}">在課表上標示</button><button class="btn" data-medit="${m.id}">編輯資料</button></div></div>
+    <div class="credit">
+      <div><span class="label">剩餘堂數</span><span class="v num ${cr.left<=0?'zero':cr.left<=2?'low':''}">${cr.left}</span></div>
+      <div><span class="label">已購買</span><span class="v num">${cr.bought}</span></div>
+      <div><span class="label">已使用</span><span class="v num">${cr.used}</span></div>
+      <div><span class="label">之後已排</span><span class="v num">${cr.upcoming}</span></div>
+    </div>
+    <div><div class="sec-title"><h3>接下來的課</h3></div>${tbl(up)}</div>
+    <div><div class="sec-title"><h3>最近上課紀錄</h3><span class="small muted">最多顯示 12 筆</span></div>${tbl(past)}</div>
+    <div><div class="sec-title"><h3>購買紀錄</h3><button class="btn sm" data-pkg="${m.id}">＋ 新增購買</button></div>
+      ${m.packages.length ? `<div class="tbl"><table><thead><tr><th>日期</th><th>堂數</th><th>說明</th><th></th></tr></thead><tbody>${m.packages.map(p=>`<tr><td class="num">${p.date}</td><td class="num">${p.count}</td><td>${esc(p.note)}</td><td><button class="btn sm danger" data-pkdel="${m.id}|${p.id}">刪除</button></td></tr>`).join('')}</tbody></table></div>` : `<p class="muted small" style="margin:0">還沒有購買紀錄</p>`}
+    </div>
+  </div>`;
+}
+function editMember(id){
+  const m = id ? memberOf(id) : { name:'', phone:'', note:'' };
+  modal(`<h3>${id?'編輯會員':'新增會員'}</h3><form class="form" id="mf">
+    <div class="field"><label for="mf-name">姓名</label><input id="mf-name" required value="${esc(m.name)}"></div>
+    <div class="field"><label for="mf-phone">電話</label><input id="mf-phone" inputmode="tel" value="${esc(m.phone)}"></div>
+    <div class="field"><label for="mf-note">身體狀況／備註</label><input id="mf-note" value="${esc(m.note)}" placeholder="例：下背舊傷"></div>
+    ${id?'':`<div class="field"><label for="mf-pk">首次購買堂數（可留空）</label><input id="mf-pk" type="number" min="0" placeholder="例：10"></div>`}
+    <div class="acts">${id?`<span class="left"><button type="button" class="btn danger" id="mf-del">刪除會員</button></span>`:''}<button type="button" class="btn" data-close>取消</button><button class="btn primary">儲存</button></div></form>`,
+  (el, close) => {
+    $('#mf', el).onsubmit = e => {
+      e.preventDefault();
+      const v = { name:$('#mf-name').value.trim(), phone:$('#mf-phone').value.trim(), note:$('#mf-note').value.trim() };
+      if (id) Object.assign(m, v);
+      else { const pk = Number($('#mf-pk').value || 0); const nm = { id:uid('m'), ...v, packages: pk ? [{ id:uid('p'), date:ymd(TODAY), count:pk, note:`${pk} 堂課卡` }] : [] }; db.members.push(nm); ui.mSel = nm.id; }
+      close(); commit(id ? '會員資料已更新' : '已新增會員');
+    };
+    if (id) $('#mf-del', el).onclick = () => {
+      const n = db.bookings.filter(b => b.memberIds.includes(id) && b.status==='booked').length;
+      close(); confirmBox(`刪除 ${esc(m.name)}？`, `<p style="margin:0">${n ? `這位會員還有 ${n} 堂未上的課，會一併從課表移除。` : '過去的上課紀錄會保留，但會顯示為「已刪除會員」。'}</p>`, '刪除', () => {
+        db.bookings.forEach(b => { if (b.status==='booked') b.memberIds = b.memberIds.filter(x => x !== id); });
+        db.bookings = db.bookings.filter(b => b.memberIds.length || b.status !== 'booked');
+        db.members = db.members.filter(x => x.id !== id); if (ui.focus === id) ui.focus = ''; ui.mSel = null; commit('會員已刪除');
+      });
+    };
+  });
+}
+function addPackage(id){
+  const m = memberOf(id);
+  modal(`<h3>新增購買｜${esc(m.name)}</h3><form class="form" id="pf">
+    <div class="grid2"><div class="field"><label for="pf-n">堂數</label><input id="pf-n" type="number" min="1" value="10" required></div>
+    <div class="field"><label for="pf-d">日期</label><input id="pf-d" type="date" value="${ymd(TODAY)}" required></div></div>
+    <div class="field"><label for="pf-note">說明</label><input id="pf-note" placeholder="例：10 堂私人課卡・刷卡"></div>
+    <div class="acts"><button type="button" class="btn" data-close>取消</button><button class="btn primary">新增</button></div></form>`,
+  (el, close) => $('#pf', el).onsubmit = e => { e.preventDefault(); const n = Number($('#pf-n').value); m.packages.push({ id:uid('p'), date:$('#pf-d').value, count:n, note:$('#pf-note').value.trim() || `${n} 堂課卡` }); close(); commit(`已為 ${m.name} 加入 ${n} 堂`); });
+}
+
+// ===== settings =====
+function settingsView(){
+  const s = db.settings;
+  const colorSel = (c) => `<select data-set="coach-color" data-id="${c.id}" aria-label="顏色">${['青綠','紫','黃褐','藍','玫瑰','橄欖'].map((n,i)=>`<option value="${i}" ${i===c.color?'selected':''}>${n}</option>`).join('')}</select>`;
+  return `<div class="settings">
+    <div class="panel"><h3>基本設定</h3>
+      <div class="field"><label for="st-name">教室名稱</label><input id="st-name" data-set="studio" value="${esc(s.studio)}"></div>
+      <div class="grid2"><div class="field"><label for="st-open">課表開始時間</label><input id="st-open" type="time" step="1800" data-set="open" value="${s.open}"></div>
+      <div class="field"><label for="st-close">課表結束時間</label><input id="st-close" type="time" step="1800" data-set="close" value="${s.close}"></div></div>
+    </div>
+    <div class="panel"><h3>教練</h3><div class="rowlist">${db.coaches.map(c=>`<div class="srow" style="--cc:var(--c${c.color})"><span class="dot"></span><input class="grow" data-set="coach-name" data-id="${c.id}" value="${esc(c.name)}" aria-label="教練名稱">${colorSel(c)}<button class="btn sm danger" data-del-coach="${c.id}">刪除</button></div>`).join('')}</div>
+      <button class="btn sm" id="add-coach" style="justify-self:start">＋ 新增教練</button></div>
+    <div class="panel"><h3>教室／器械</h3><div class="rowlist">${db.rooms.map(r=>`<div class="srow"><input class="grow" data-set="room-name" data-id="${r.id}" value="${esc(r.name)}" aria-label="教室名稱"><button class="btn sm danger" data-del-room="${r.id}">刪除</button></div>`).join('')}</div>
+      <button class="btn sm" id="add-room" style="justify-self:start">＋ 新增教室／器械</button></div>
+    <div class="panel"><h3>課程類型</h3><div class="small muted">預設分鐘數與人數上限，排課時會自動帶入並檢查。</div>
+      <div class="rowlist">${db.types.map(t=>`<div class="srow"><input class="grow" data-set="type-name" data-id="${t.id}" value="${esc(t.name)}" aria-label="課程名稱"><input class="n num" type="number" min="15" step="5" data-set="type-dur" data-id="${t.id}" value="${t.dur}" aria-label="分鐘"><span class="small muted">分</span><input class="n num" type="number" min="1" data-set="type-cap" data-id="${t.id}" value="${t.cap}" aria-label="人數上限"><span class="small muted">人</span><button class="btn sm danger" data-del-type="${t.id}">刪除</button></div>`).join('')}</div>
+      <button class="btn sm" id="add-type" style="justify-self:start">＋ 新增課程類型</button></div>
+    <div class="panel"><h3>資料備份</h3>
+      <p class="small muted" style="margin:0">資料儲存在這台電腦的瀏覽器中，換電腦或清除瀏覽器資料後就會不見。請定期匯出備份。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="export">匯出備份</button><button class="btn" id="import">匯入備份</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn danger" id="reset-sample">重新載入範例資料</button><button class="btn danger" id="wipe">清空全部資料</button></div>
+    </div>
+  </div>`;
+}
+function exportData(){
+  const json = JSON.stringify(db, null, 1);
+  modal(`<h3>匯出備份</h3><p class="small muted" style="margin:0">下載備份檔；若無法下載，可複製下方文字另存。</p>
+    <textarea class="mono" id="ex-txt" readonly>${esc(json)}</textarea>
+    <div class="acts"><button class="btn" id="ex-copy">複製文字</button><button class="btn primary" id="ex-dl">下載備份檔</button><button class="btn" data-close>關閉</button></div>`,
+  el => {
+    $('#ex-copy', el).onclick = () => { const t = $('#ex-txt', el); navigator.clipboard?.writeText(json).then(()=>toast('已複製'), ()=>{ t.select(); toast('請按 Ctrl/⌘+C 複製'); }) ?? (t.select()); };
+    $('#ex-dl', el).onclick = () => { try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], {type:'application/json'})); a.download = `排課表備份-${ymd(new Date())}.json`; document.body.appendChild(a); a.click(); a.remove(); } catch(e) { toast('無法下載，請改用複製文字'); } };
+  });
+}
+function importData(){
+  modal(`<h3>匯入備份</h3><p class="small muted" style="margin:0">選擇備份檔，或貼上備份文字。匯入後會取代目前所有資料。</p>
+    <input type="file" id="im-file" accept=".json,application/json">
+    <textarea class="mono" id="im-txt" placeholder="或在這裡貼上備份文字"></textarea>
+    <div class="acts"><button class="btn" data-close>取消</button><button class="btn primary" id="im-go">匯入並取代</button></div>`,
+  (el, close) => {
+    $('#im-file', el).onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => $('#im-txt', el).value = r.result; r.readAsText(f); };
+    $('#im-go', el).onclick = () => {
+      try { const d = JSON.parse($('#im-txt', el).value); if (!Array.isArray(d.bookings) || !Array.isArray(d.members)) throw 0; db = d; close(); commit('備份已匯入'); }
+      catch(e) { toast('內容不是有效的備份檔，請確認後再試'); }
+    };
+  });
+}
+
+// ===== events =====
 document.addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
+  const t = e.target;
+  const b = t.closest('button, tr.click, .lane');
+  if (!b) return;
   const d = b.dataset;
-  if (d.day) { state.day = d.day; render(); }
-  else if (d.mtab) { state.memberTab = d.mtab; render(); }
-  else if (d.atab) { state.adminTab = d.atab; render(); }
-  else if (d.book) book(d.book);
-  else if (d.cancel) cancel(d.cancel);
-  else if (d.wait) { state.classes.find(c=>c.id===d.wait).wait.push(state.user.id); render(); toast('已加入候補，有空位會以 LINE 通知你'); }
-  else if (d.unwait) { const c = state.classes.find(c=>c.id===d.unwait); c.wait = c.wait.filter(x=>x!==state.user.id); render(); toast('已取消候補'); }
-  else if (d.roster) roster(d.roster);
-  else if ('edit' in d) editClass(d.edit);
-  else if (d.del) { const c = state.classes.find(x=>x.id===d.del);
-    confirmBox('刪除課程', `<p style="margin:0">${esc(c.title)}・${fmtDate(c.date)} ${c.start}</p><p class="small muted">已預約的 ${c.booked.filter(m=>!m.startsWith('guest')).length} 位會員會退回堂數並收到停課通知。</p>`, '刪除', () => {
-      c.booked.forEach(m=>{const mm=state.members.find(x=>x.id===m); if(mm) mm.credits++;}); state.classes = state.classes.filter(x=>x!==c); render(); toast('課程已刪除');
-    }, true); }
-  else if (d.cr) { const [id,n] = d.cr.split('|'); const m = state.members.find(x=>x.id===id); m.credits = Math.max(0, m.credits + +n); render(); }
-  else if (d.plan) topUp(d.plan);
-  else if (d.toggle) { const m = state.members.find(x=>x.id===d.toggle); m.status = m.status==='active'?'paused':'active'; render(); }
-  else if (d.acancel) { const [cid,mid] = d.acancel.split('|'); const c = state.classes.find(x=>x.id===cid);
-    confirmBox('代為取消', `<p style="margin:0">取消 ${esc(memberName(mid))} 的「${esc(c.title)}」預約，並退回 1 堂？</p>`, '確認取消', () => {
-      if (c.booked.includes(mid)) { c.booked = c.booked.filter(x=>x!==mid); const mm=state.members.find(x=>x.id===mid); if(mm) mm.credits++; promote(c); }
-      else c.wait = c.wait.filter(x=>x!==mid);
-      render(); toast('已取消並通知會員');
-    }, true); }
-  else if (b.id === 'logout' || b.id === 'demo-reset') { state.role = null; state.user = null; $('#whoami').textContent='未登入'; render(); }
-  else if (b.id === 'demo-member') loginAs('member');
-  else if (b.id === 'demo-admin') loginAs('admin');
+  if (b.classList.contains('lane') && !t.closest('.blk')) {
+    const y = e.clientY - b.getBoundingClientRect().top;
+    const m = toMin(db.settings.open) + Math.floor(y / PX / 30) * 30;
+    return openBooking({ date: d.ld, coachId: d.lc, start: fromMin(m), memberIds: ui.focus ? [ui.focus] : [] });
+  }
+  if (d.view) { ui.view = d.view; render(); }
+  else if (d.bk) openBooking({ id: d.bk });
+  else if (d.new) openBooking({ memberIds: d.nm ? [d.nm] : ui.focus && ui.view !== 'members' ? [ui.focus] : [] });
+  else if (d.shift) { ui.date = ymd(addDays(parse(ui.date), Number(d.shift) * (ui.view==='day'?1:7))); render(); }
+  else if (d.today) { ui.date = ymd(TODAY); render(); }
+  else if (d.goday) { ui.date = d.goday; ui.view = 'day'; render(); }
+  else if (d.coach) { ui.hidden.has(d.coach) ? ui.hidden.delete(d.coach) : ui.hidden.add(d.coach); render(); }
+  else if (d.mopen) { ui.mSel = d.mopen; ui.view = 'members'; render(); }
+  else if (d.msel) { ui.mSel = d.msel; render(); }
+  else if (d.mfocus) { ui.focus = d.mfocus; ui.view = 'week'; render(); }
+  else if (d.medit) editMember(d.medit);
+  else if (d.pkg) addPackage(d.pkg);
+  else if (d.pkdel) { const [mid,pid] = d.pkdel.split('|'); const m = memberOf(mid); m.packages = m.packages.filter(p => p.id !== pid); commit('已刪除購買紀錄'); }
+  else if (d.delCoach) { const n = db.bookings.filter(x => x.coachId === d.delCoach).length; if (n) return toast(`這位教練還有 ${n} 堂課，請先改派其他教練`); db.coaches = db.coaches.filter(c => c.id !== d.delCoach); commit('已刪除教練'); }
+  else if (d.delRoom) { const n = db.bookings.filter(x => x.roomId === d.delRoom).length; if (n) return toast(`還有 ${n} 堂課使用這間教室，請先改到其他教室`); db.rooms = db.rooms.filter(r => r.id !== d.delRoom); commit('已刪除'); }
+  else if (d.delType) { const n = db.bookings.filter(x => x.typeId === d.delType).length; if (n) return toast(`還有 ${n} 堂課使用這個類型，無法刪除`); db.types = db.types.filter(x => x.id !== d.delType); commit('已刪除'); }
+  else if (b.id === 'm-add') editMember(null);
+  else if (b.id === 'add-coach') { const used = new Set(db.coaches.map(c=>c.color)); db.coaches.push({ id:uid('k'), name:'新教練', color:[0,1,2,3,4,5].find(i=>!used.has(i)) ?? 0 }); commit(); }
+  else if (b.id === 'add-room') { db.rooms.push({ id:uid('r'), name:'新教室' }); commit(); }
+  else if (b.id === 'add-type') { db.types.push({ id:uid('t'), name:'新課程', dur:55, cap:1 }); commit(); }
+  else if (b.id === 'export') exportData();
+  else if (b.id === 'import') importData();
+  else if (b.id === 'clear-sample') confirmBox('清除範例資料？', '<p style="margin:0">會刪除所有範例會員與課程，保留教練、教室與課程類型設定（可在「設定」修改）。</p>', '清除', () => { db.members = []; db.bookings = []; db.sample = false; ui.focus = ''; commit('已清除，可以開始建立會員與排課'); });
+  else if (b.id === 'reset-sample') confirmBox('重新載入範例資料？', '<p style="margin:0">目前所有資料會被範例取代。如需保留，請先匯出備份。</p>', '載入範例', () => { db = seed(); ui.focus = ''; commit('已載入範例資料'); });
+  else if (b.id === 'wipe') confirmBox('清空全部資料？', '<p style="margin:0">會員、課程、教練與設定都會刪除，無法復原。如需保留，請先匯出備份。</p>', '清空', () => { db = { sample:false, settings:{ studio:'我的皮拉提斯教室', open:'07:00', close:'22:00' }, coaches:[], rooms:[], types:[{id:uid('t'),name:'私人課',dur:55,cap:1}], members:[], bookings:[] }; ui.focus=''; commit('已清空'); });
 });
 document.addEventListener('change', e => {
-  if (e.target.id === 'cls-filter') { state.classFilter = e.target.value; render(); }
+  const t = e.target, d = t.dataset;
+  if (t.id === 'jump' && t.value) { ui.date = t.value; render(); }
+  else if (t.id === 'focus') { ui.focus = t.value; render(); }
+  else if (d.set) {
+    const v = t.value;
+    if (d.set === 'studio') db.settings.studio = v.trim() || db.settings.studio;
+    else if (d.set === 'open' || d.set === 'close') { if (v) db.settings[d.set] = v; if (toMin(db.settings.close) <= toMin(db.settings.open)) { toast('結束時間要晚於開始時間'); db.settings.close = fromMin(Math.min(toMin(db.settings.open)+60, 1439)); } }
+    else if (d.set === 'coach-name') coachOf(d.id).name = v.trim() || '未命名';
+    else if (d.set === 'coach-color') coachOf(d.id).color = Number(v);
+    else if (d.set === 'room-name') roomOf(d.id).name = v.trim() || '未命名';
+    else if (d.set === 'type-name') typeOf(d.id).name = v.trim() || '未命名';
+    else if (d.set === 'type-dur') typeOf(d.id).dur = Math.max(15, Number(v) || 55);
+    else if (d.set === 'type-cap') typeOf(d.id).cap = Math.max(1, Number(v) || 1);
+    commit('已儲存');
+  }
 });
 document.addEventListener('input', e => {
-  if (e.target.id === 'mem-q') { state.memberQ = e.target.value; render(); const i = $('#mem-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
-});
-document.addEventListener('submit', e => {
-  if (e.target.id === 'sf') { e.preventDefault(); const s = state.settings;
-    s.studio = $('#s-name').value; s.cancelHours = +$('#s-cancel').value; s.openDays = +$('#s-open').value; s.waitlist = $('#s-wait').checked; s.notifyLine = $('#s-line').checked;
-    render(); toast('設定已儲存'); }
+  if (e.target.id === 'mq') { ui.mq = e.target.value; render(); const i = $('#mq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 });
 render();
 </script>
