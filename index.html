@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="排課表">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -30,7 +33,13 @@
   --ok:#6CC58F; --warn:#E0A84A; --bad:#E57A7A;
   --c0:#5CC3AA; --c1:#C38FD6; --c2:#E2B14E; --c3:#7AAEF0; --c4:#EB8AA0; --c5:#A8C46A; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+#root{height:100%}
+.shell{display:flex;flex-direction:column;height:100%}
+.main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column}
+.themebtn{display:inline-flex;align-items:center;gap:6px}
+.themebtn svg{width:18px;height:18px}
 h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;line-height:1.3;text-wrap:balance}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -53,7 +62,7 @@ button{cursor:pointer}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--cc);flex:0 0 auto}
 
 /* top bar */
-.top{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
+.top{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line);z-index:10;flex:0 0 auto}
 .brand{display:flex;flex-direction:column;line-height:1.2;margin-right:auto}
 .brand h1{font-size:18px}
 .seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px}
@@ -73,16 +82,17 @@ button{cursor:pointer}
 .focusinfo{margin:0 16px 10px;font-size:13px}
 
 /* calendar */
-.cal-wrap{margin:0 16px 32px;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.cal-wrap{margin:0 16px 16px;flex:1;min-height:260px;overflow:auto;overscroll-behavior:contain;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 .cal{display:grid;position:relative}
-.cal .head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px;z-index:3;min-width:0}
+.cal .head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px;z-index:6;min-width:0}
+.cal .head.corner{left:0;z-index:7;border-right:1px solid var(--line)}
 .cal .head .n{margin-left:auto}
 .cal .head.today{color:var(--accent)}
 .cal .head button.dhead{border:0;background:none;padding:0;text-align:left;display:flex;flex-direction:column;line-height:1.25}
 .cal .head .wd{font-size:12px;color:var(--muted)}
 .cal .head .dd{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
 .cal .head.today .dd,.cal .head.today .wd{color:var(--accent)}
-.times{position:relative;border-right:1px solid var(--line)}
+.times{position:sticky;left:0;background:var(--surface);border-right:1px solid var(--line);z-index:5}
 .times span{position:absolute;right:8px;transform:translateY(-50%);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .times span:first-child{transform:translateY(2px)}
 .lane{position:relative;border-right:1px solid var(--grid-soft);cursor:copy;
@@ -90,13 +100,12 @@ button{cursor:pointer}
   background-size:100% var(--hour),100% calc(var(--hour) / 2)}
 .lane:last-child{border-right:0}
 .lane.today{background-color:color-mix(in srgb,var(--accent-soft) 35%,transparent)}
-.lane:hover{background-color:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
 .nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:2;pointer-events:none}
 .nowline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
 .blk{position:absolute;container-type:inline-size;overflow:hidden;text-align:left;cursor:pointer;
   background:color-mix(in srgb,var(--cc) 15%,var(--surface));border:1px solid color-mix(in srgb,var(--cc) 50%,transparent);
   border-radius:6px;padding:3px 6px;display:flex;flex-direction:column;gap:0;line-height:1.3;z-index:1}
-.blk:hover{background:color-mix(in srgb,var(--cc) 24%,var(--surface));z-index:4}
+.blk:active{background:color-mix(in srgb,var(--cc) 28%,var(--surface))}
 .b-time{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .b-names{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis}
 .b-meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -107,8 +116,30 @@ button{cursor:pointer}
 .blk.st-noshow .b-st{color:var(--bad)}
 .blk.dim{opacity:.22}
 .blk.hit{box-shadow:0 0 0 2px var(--cc);z-index:3}
-@container (max-width:84px){.b-meta,.b-st{display:none}.b-names{font-size:12px}}
+@container (max-width:120px){.b-time .e,.b-st{display:none}}
+@container (max-width:84px){.b-meta{display:none}.b-names{font-size:12px}}
 .empty{padding:40px 16px;text-align:center;color:var(--muted)}
+
+/* month */
+.month-wrap{margin:0 16px 16px;flex:1;min-height:420px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(96px,1fr));min-height:100%}
+.mwd{position:sticky;top:0;z-index:2;background:var(--surface);padding:8px 10px;font-size:12px;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--line)}
+.mcell{border:0;border-right:1px solid var(--grid-soft);border-bottom:1px solid var(--grid-soft);background:none;padding:6px 8px 8px;display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:0;text-align:left;font:inherit}
+.mcell:nth-child(7n+7){border-right:0}
+.mcell.out{background:color-mix(in srgb,var(--sunk) 55%,transparent)}
+.mcell.out .mday{color:var(--muted);font-weight:500}
+.mcell:active{background:var(--accent-soft)}
+.mtop{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.mday{font-weight:700;font-variant-numeric:tabular-nums;width:28px;height:28px;display:grid;place-items:center;border-radius:50%}
+.mcell.today .mday{background:var(--accent);color:var(--accent-ink)}
+.mcount{margin-left:auto;font-size:11.5px;color:var(--muted)}
+.mcell.hit .mcount{color:var(--accent);font-weight:700}
+.mrow{display:flex;gap:5px;align-items:center;font-size:12px;line-height:1.45;white-space:nowrap;overflow:hidden;min-width:0}
+.mrow .dot{width:7px;height:7px}
+.mrow .nm{overflow:hidden;text-overflow:ellipsis}
+.mrow .tm{color:var(--muted);font-variant-numeric:tabular-nums}
+.mrow.x .nm{text-decoration:line-through;color:var(--muted)}
+.mmore{font-size:12px;color:var(--accent);font-weight:500}
 
 /* member view */
 .mview{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:12px 16px 40px;align-items:start}
@@ -132,18 +163,21 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);verti
 th{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:500}
 tr:last-child td{border-bottom:0}
 tr.click{cursor:pointer}
-tr.click:hover td{background:var(--sunk)}
+tr.click:active td{background:var(--sunk)}
 .sec-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .sec-title h3{font-size:16px}
 
 /* settings */
-.settings{padding:12px 16px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
-.settings .panel{padding:16px;display:grid;gap:12px}
-.rowlist{display:grid;gap:8px}
-.srow{display:flex;gap:8px;align-items:center}
-.srow input,.srow select{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:5px 8px;min-width:0}
-.srow input.grow{flex:1}
-.srow input.n{width:64px}
+.settings{padding:12px 16px 40px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.settings .panel{padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.rowlist{display:grid;gap:8px;min-width:0}
+.srow{display:grid;gap:8px;align-items:center;min-width:0}
+.srow.coach{grid-template-columns:12px minmax(0,1fr) 92px auto}
+.srow.room{grid-template-columns:minmax(0,1fr) auto}
+.srow.type{grid-template-columns:minmax(0,1fr) 84px 84px auto}
+.srow.hdr{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.srow.hdr span:last-child{visibility:hidden}
+.srow input,.srow select{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
 
 /* forms & modal */
 .form{display:grid;gap:12px}
@@ -166,6 +200,28 @@ tr.click:hover td{background:var(--sunk)}
 .modal textarea.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;height:160px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:999px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 
+@media (hover:hover){
+  .lane:hover{background-color:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+  .blk:hover{background:color-mix(in srgb,var(--cc) 24%,var(--surface));z-index:4}
+  tr.click:hover td{background:var(--sunk)}
+  .mcell{cursor:pointer}
+  .mcell:hover{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+}
+/* tablet / touch: bigger targets, no iOS zoom on focus */
+@media (pointer:coarse){
+  .btn{padding:10px 16px;min-height:42px}
+  .btn.sm{padding:7px 12px;min-height:36px}
+  .btn.icon{min-width:44px}
+  .seg button{padding:9px 16px}
+  .chip{padding:8px 14px 8px 12px}
+  input,select,textarea,.focus select,.datenav input[type=date]{font-size:16px}
+  .mlist li button{padding:12px}
+  .mchip button{width:30px;height:30px}
+  .b-names{font-size:14px}
+}
+@media (max-width:900px){
+  .settings{grid-template-columns:minmax(0,1fr)}
+}
 @media (max-width:760px){
   .mview{grid-template-columns:1fr}
   .mlist ul{max-height:240px}
@@ -220,12 +276,12 @@ function seed(){
   const bookings = [];
   const ws = wkStart(TODAY), now = new Date();
   let ptr = 0, n = 0;
-  for (let d = 0; d < 14; d++) {
-    if (d % 7 === 6) continue; // 週日公休
+  for (let d = -14; d < 35; d++) {
+    if (((d % 7) + 7) % 7 === 6) continue; // 週日公休
     const date = ymd(addDays(ws, d));
     coaches.forEach((c, ki) => slots[c.id].forEach((start, si) => {
       if ((d*31 + ki*17 + si*7) % 5 === 0) return;
-      if (d % 7 === 5 && toMin(start) > 13*60) return; // 週六只上早上
+      if (((d % 7) + 7) % 7 === 5 && toMin(start) > 13*60) return; // 週六只上早上
       const isGroup = c.id === 'k4' && start === '19:00';
       const isDuo = !isGroup && (d + ki + si) % 6 === 0;
       const want = isGroup ? 3 + (d % 2) : isDuo ? 2 : 1;
@@ -298,40 +354,78 @@ function confirmBox(title, body, okText, fn){
 function commit(msg){ save(); render(); if (msg) toast(msg); }
 
 // ===== render: shell =====
+// ===== theme =====
+const THEME_KEY = 'pilates-theme';
+let theme = (() => { try { return localStorage.getItem(THEME_KEY); } catch(e) { return null; } })();
+const isDark = () => theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+function applyTheme(){ if (theme) document.documentElement.setAttribute('data-theme', theme); else document.documentElement.removeAttribute('data-theme'); }
+applyTheme();
+const ICON_SUN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const ICON_MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>`;
+
+// ===== render: shell =====
+const scrollKey = () => ui.view === 'day' ? 'd' + ui.date : ui.view === 'week' ? 'w' + ymd(wkStart(parse(ui.date))) : '';
 function render(){
   const v = ui.view;
-  $('#root').innerHTML = `
+  const prev = $('.cal-wrap');
+  const keep = prev && ui.lastKey === scrollKey() ? { t: prev.scrollTop, l: prev.scrollLeft } : null;
+  const mainScroll = $('.main')?.scrollTop || 0, sameView = ui.lastView === v;
+  const dark = isDark();
+  $('#root').innerHTML = `<div class="shell">
     <header class="top">
       <div class="brand"><span class="label">${esc(db.settings.studio)}</span><h1>排課表</h1></div>
-      <div class="seg" role="tablist">${[['day','日'],['week','週'],['members','會員'],['settings','設定']].map(([k,l])=>`<button class="${v===k?'on':''}" data-view="${k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="tablist">${[['day','日'],['week','週'],['month','月'],['members','會員'],['settings','設定']].map(([k,l])=>`<button class="${v===k?'on':''}" data-view="${k}">${l}</button>`).join('')}</div>
+      <button class="btn icon themebtn" id="theme" aria-label="切換為${dark?'亮色':'暗色'}模式" title="切換為${dark?'亮色':'暗色'}模式">${dark ? ICON_SUN : ICON_MOON}</button>
       <button class="btn primary" data-new="1">＋ 新增預約</button>
     </header>
     ${db.sample ? `<div class="banner" style="margin-top:10px">目前是範例資料，可以隨意操作。正式使用前請清除範例。<button class="btn sm" id="clear-sample">清除範例資料</button></div>` : ''}
-    ${v==='day'||v==='week' ? calendarView() : v==='members' ? memberView() : settingsView()}`;
+    <div class="main">${v==='day'||v==='week'||v==='month' ? calendarView() : v==='members' ? memberView() : settingsView()}</div>
+  </div>`;
+  const w = $('.cal-wrap');
+  if (w) {
+    if (keep) { w.scrollTop = keep.t; w.scrollLeft = keep.l; }
+    else {
+      const open = toMin(db.settings.open), n = new Date();
+      const showsToday = v === 'day' ? ui.date === ymd(TODAY) : ymd(wkStart(parse(ui.date))) === ymd(wkStart(TODAY));
+      const target = showsToday ? n.getHours()*60 + n.getMinutes() - 90 : 8*60;
+      w.scrollTop = Math.max(0, (target - open) * PX);
+    }
+  }
+  if (sameView && !w) { const mm = $('.main'); if (mm) mm.scrollTop = mainScroll; }
+  ui.lastKey = scrollKey(); ui.lastView = v;
 }
 
 // ===== calendar =====
 const PX = 1.15; // px per minute
 function visibleCoaches(){ return db.coaches.filter(c => !ui.hidden.has(c.id)); }
+function monthRange(d){
+  const first = new Date(d.getFullYear(), d.getMonth(), 1), last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  const start = wkStart(first), end = addDays(wkStart(last), 6);
+  return { first, last, start, days: Math.round((end - start) / 864e5) + 1 };
+}
 function calendarView(){
-  const isDay = ui.view === 'day';
+  const view = ui.view, isDay = view === 'day', isMonth = view === 'month';
+  const unit = isDay ? '天' : isMonth ? '個月' : '週';
   const d = parse(ui.date);
   const ws = wkStart(d);
-  const label = isDay ? `${d.getMonth()+1} 月 ${d.getDate()} 日・週${WD[d.getDay()]}` : `${ws.getMonth()+1}/${ws.getDate()} – ${addDays(ws,6).getMonth()+1}/${addDays(ws,6).getDate()}`;
+  const label = isDay ? `${d.getMonth()+1} 月 ${d.getDate()} 日・週${WD[d.getDay()]}`
+    : isMonth ? `${d.getFullYear()} 年 ${d.getMonth()+1} 月`
+    : `${ws.getMonth()+1}/${ws.getDate()} – ${addDays(ws,6).getMonth()+1}/${addDays(ws,6).getDate()}`;
   const focusM = ui.focus && memberOf(ui.focus);
   let focusInfo = '';
   if (focusM) {
     const cr = credits(focusM);
-    const range = isDay ? [ui.date] : Array.from({length:7},(_,i)=>ymd(addDays(ws,i)));
-    const cnt = db.bookings.filter(b => range.includes(b.date) && b.memberIds.includes(focusM.id)).length;
-    focusInfo = `<div class="focusinfo"><b>${esc(focusM.name)}</b>：${isDay?'今天':'本週'} ${cnt} 堂・剩餘 <b class="num">${cr.left}</b> 堂・之後已預約 ${cr.upcoming} 堂　<button class="btn sm" data-new="1" data-nm="${focusM.id}">為她/他新增預約</button> <button class="btn sm" data-mopen="${focusM.id}">查看會員</button></div>`;
+    const ym = ui.date.slice(0,7);
+    const inRange = isDay ? (s => s === ui.date) : isMonth ? (s => s.slice(0,7) === ym) : (s => s >= ymd(ws) && s <= ymd(addDays(ws,6)));
+    const cnt = db.bookings.filter(b => inRange(b.date) && b.memberIds.includes(focusM.id) && b.status !== 'leave').length;
+    focusInfo = `<div class="focusinfo"><b>${esc(focusM.name)}</b>：${isDay?'今天':isMonth?'本月':'本週'} ${cnt} 堂・剩餘 <b class="num">${cr.left}</b> 堂・之後已預約 ${cr.upcoming} 堂　<button class="btn sm" data-new="1" data-nm="${focusM.id}">為她/他新增預約</button> <button class="btn sm" data-mopen="${focusM.id}">查看會員</button></div>`;
   }
   return `
     <div class="bar">
       <div class="datenav">
-        <button class="btn icon" data-shift="-1" aria-label="上一${isDay?'天':'週'}">‹</button>
+        <button class="btn icon" data-shift="-1" aria-label="上一${unit}">‹</button>
         <button class="btn" data-today="1">今天</button>
-        <button class="btn icon" data-shift="1" aria-label="下一${isDay?'天':'週'}">›</button>
+        <button class="btn icon" data-shift="1" aria-label="下一${unit}">›</button>
         <h2 class="num">${label}</h2>
         <input type="date" id="jump" value="${ui.date}" aria-label="跳到日期">
       </div>
@@ -340,7 +434,7 @@ function calendarView(){
         <select id="focus"><option value="">全部</option>${db.members.map(m=>`<option value="${m.id}" ${m.id===ui.focus?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>
     </div>
     ${focusInfo}
-    ${!db.coaches.length ? `<div class="cal-wrap"><div class="empty">還沒有教練。請到「設定」新增教練後開始排課。</div></div>` : isDay ? dayGrid() : weekGrid(ws)}`;
+    ${!db.coaches.length ? `<div class="cal-wrap"><div class="empty">還沒有教練。請到「設定」新增教練後開始排課。</div></div>` : isDay ? dayGrid() : isMonth ? monthGrid() : weekGrid(ws)}`;
 }
 function hourMarks(open, close, H){
   let s = '';
@@ -363,7 +457,7 @@ function blockHTML(b, open, style, withCoach){
   return `<button class="blk st-${b.status} ${dim?'dim':''} ${hit?'hit':''}" data-bk="${b.id}"
     style="top:${top}px;height:${h}px;${style};--cc:var(--c${c?.color ?? 0})"
     title="${esc(`${b.start}–${endOf(b)} ${names}\n${meta}${b.note ? '\n備註：'+b.note : ''}`)}">
-    <span class="b-time">${b.start}–${endOf(b)}</span><span class="b-names">${esc(names)}</span><span class="b-meta">${esc(meta)}</span>
+    <span class="b-time">${b.start}<span class="e">–${endOf(b)}</span></span><span class="b-names">${esc(names)}</span><span class="b-meta">${esc(meta)}</span>
     ${b.status!=='booked'?`<span class="b-st">${STATUS[b.status].label}</span>`:''}</button>`;
 }
 function dayGrid(){
@@ -379,7 +473,7 @@ function dayGrid(){
     const list = db.bookings.filter(b => b.date===ui.date && b.coachId===c.id).sort((a,b)=>a.start.localeCompare(b.start));
     return `<div class="lane ${today?'today':''}" data-ld="${ui.date}" data-lc="${c.id}" style="height:${H}px;--hour:${60*PX}px">${list.map(b=>blockHTML(b, open, 'left:3px;right:3px', false)).join('')}${nowLine(ui.date, open, close)}</div>`;
   }).join('');
-  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(${cs.length},minmax(150px,1fr))"><div class="head"></div>${heads}${hourMarks(open,close,H)}${lanes}</div></div>`;
+  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(${cs.length},minmax(150px,1fr))"><div class="head corner"></div>${heads}${hourMarks(open,close,H)}${lanes}</div></div>`;
 }
 function layout(list){
   const res = []; let cluster = [], end = -1;
@@ -401,7 +495,29 @@ function weekGrid(ws){
     const blocks = layout(list).map(it => { const w = 100/it.n; return blockHTML(it.b, open, `left:calc(${it.col*w}% + 2px);width:calc(${w}% - 4px)`, true); }).join('');
     return `<div class="lane ${ds===ymd(TODAY)?'today':''}" data-ld="${ds}" style="height:${H}px;--hour:${60*PX}px">${blocks}${nowLine(ds, open, close)}</div>`;
   }).join('');
-  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(7,minmax(150px,1fr))"><div class="head"></div>${heads}${hourMarks(open,close,H)}${cols}</div></div>`;
+  return `<div class="cal-wrap"><div class="cal" style="grid-template-columns:56px repeat(7,minmax(122px,1fr))"><div class="head corner"></div>${heads}${hourMarks(open,close,H)}${cols}</div></div>`;
+}
+function monthGrid(){
+  const d = parse(ui.date), { start, days } = monthRange(d);
+  const show = new Set(visibleCoaches().map(c => c.id));
+  const todayS = ymd(TODAY), MAX = 4;
+  const heads = ['一','二','三','四','五','六','日'].map(w => `<div class="mwd">週${w}</div>`).join('');
+  let cells = '';
+  for (let i = 0; i < days; i++) {
+    const day = addDays(start, i), ds = ymd(day);
+    const all = db.bookings.filter(b => b.date === ds && show.has(b.coachId)).sort((a,b) => a.start.localeCompare(b.start) || a.coachId.localeCompare(b.coachId));
+    const list = ui.focus ? all.filter(b => b.memberIds.includes(ui.focus)) : all;
+    const active = list.filter(b => b.status !== 'leave').length;
+    const rows = list.slice(0, MAX).map(b => {
+      const c = coachOf(b.coachId);
+      return `<span class="mrow ${b.status==='leave'||b.status==='noshow'?'x':''}" style="--cc:var(--c${c?.color ?? 0})"><span class="dot"></span><span class="tm">${b.start}</span><span class="nm">${esc(b.memberIds.map(mName).join('、') || '—')}</span></span>`;
+    }).join('');
+    const more = list.length > MAX ? `<span class="mmore">還有 ${list.length - MAX} 堂</span>` : '';
+    const cls = [day.getMonth() !== d.getMonth() ? 'out' : '', ds === todayS ? 'today' : '', ui.focus && list.length ? 'hit' : ''].join(' ');
+    cells += `<button class="mcell ${cls}" data-goday="${ds}" aria-label="${day.getMonth()+1} 月 ${day.getDate()} 日，${active} 堂課，查看當天">
+      <span class="mtop"><span class="mday">${day.getDate()}</span>${active ? `<span class="mcount num">${active} 堂</span>` : ''}</span>${rows}${more}</button>`;
+  }
+  return `<div class="month-wrap"><div class="mgrid" style="grid-template-rows:auto repeat(${days/7},minmax(118px,1fr))">${heads}${cells}</div></div>`;
 }
 
 // ===== booking editor =====
@@ -586,12 +702,16 @@ function settingsView(){
       <div class="grid2"><div class="field"><label for="st-open">課表開始時間</label><input id="st-open" type="time" step="1800" data-set="open" value="${s.open}"></div>
       <div class="field"><label for="st-close">課表結束時間</label><input id="st-close" type="time" step="1800" data-set="close" value="${s.close}"></div></div>
     </div>
-    <div class="panel"><h3>教練</h3><div class="rowlist">${db.coaches.map(c=>`<div class="srow" style="--cc:var(--c${c.color})"><span class="dot"></span><input class="grow" data-set="coach-name" data-id="${c.id}" value="${esc(c.name)}" aria-label="教練名稱">${colorSel(c)}<button class="btn sm danger" data-del-coach="${c.id}">刪除</button></div>`).join('')}</div>
+    <div class="panel"><h3>教練</h3><div class="rowlist">
+      <div class="srow coach hdr"><span></span><span>名稱</span><span>顏色</span><span class="btn sm">刪除</span></div>
+      ${db.coaches.map(c=>`<div class="srow coach" style="--cc:var(--c${c.color})"><span class="dot"></span><input data-set="coach-name" data-id="${c.id}" value="${esc(c.name)}" aria-label="教練名稱">${colorSel(c)}<button class="btn sm danger" data-del-coach="${c.id}">刪除</button></div>`).join('')}</div>
       <button class="btn sm" id="add-coach" style="justify-self:start">＋ 新增教練</button></div>
-    <div class="panel"><h3>教室／器械</h3><div class="rowlist">${db.rooms.map(r=>`<div class="srow"><input class="grow" data-set="room-name" data-id="${r.id}" value="${esc(r.name)}" aria-label="教室名稱"><button class="btn sm danger" data-del-room="${r.id}">刪除</button></div>`).join('')}</div>
+    <div class="panel"><h3>教室／器械</h3><div class="rowlist">${db.rooms.map(r=>`<div class="srow room"><input data-set="room-name" data-id="${r.id}" value="${esc(r.name)}" aria-label="教室名稱"><button class="btn sm danger" data-del-room="${r.id}">刪除</button></div>`).join('')}</div>
       <button class="btn sm" id="add-room" style="justify-self:start">＋ 新增教室／器械</button></div>
-    <div class="panel"><h3>課程類型</h3><div class="small muted">預設分鐘數與人數上限，排課時會自動帶入並檢查。</div>
-      <div class="rowlist">${db.types.map(t=>`<div class="srow"><input class="grow" data-set="type-name" data-id="${t.id}" value="${esc(t.name)}" aria-label="課程名稱"><input class="n num" type="number" min="15" step="5" data-set="type-dur" data-id="${t.id}" value="${t.dur}" aria-label="分鐘"><span class="small muted">分</span><input class="n num" type="number" min="1" data-set="type-cap" data-id="${t.id}" value="${t.cap}" aria-label="人數上限"><span class="small muted">人</span><button class="btn sm danger" data-del-type="${t.id}">刪除</button></div>`).join('')}</div>
+    <div class="panel"><h3>課程類型</h3><div class="small muted">排課時會自動帶入分鐘數，並檢查人數上限。</div>
+      <div class="rowlist">
+      <div class="srow type hdr"><span>名稱</span><span>分鐘</span><span>人數上限</span><span class="btn sm">刪除</span></div>
+      ${db.types.map(t=>`<div class="srow type"><input data-set="type-name" data-id="${t.id}" value="${esc(t.name)}" aria-label="課程名稱"><input class="num" type="number" inputmode="numeric" min="15" step="5" data-set="type-dur" data-id="${t.id}" value="${t.dur}" aria-label="${esc(t.name)} 分鐘"><input class="num" type="number" inputmode="numeric" min="1" data-set="type-cap" data-id="${t.id}" value="${t.cap}" aria-label="${esc(t.name)} 人數上限"><button class="btn sm danger" data-del-type="${t.id}">刪除</button></div>`).join('')}</div>
       <button class="btn sm" id="add-type" style="justify-self:start">＋ 新增課程類型</button></div>
     <div class="panel"><h3>資料備份</h3>
       <p class="small muted" style="margin:0">資料儲存在這台電腦的瀏覽器中，換電腦或清除瀏覽器資料後就會不見。請定期匯出備份。</p>
@@ -638,7 +758,12 @@ document.addEventListener('click', e => {
   if (d.view) { ui.view = d.view; render(); }
   else if (d.bk) openBooking({ id: d.bk });
   else if (d.new) openBooking({ memberIds: d.nm ? [d.nm] : ui.focus && ui.view !== 'members' ? [ui.focus] : [] });
-  else if (d.shift) { ui.date = ymd(addDays(parse(ui.date), Number(d.shift) * (ui.view==='day'?1:7))); render(); }
+  else if (d.shift) {
+    const n = Number(d.shift), cur = parse(ui.date);
+    ui.date = ui.view === 'month' ? ymd(new Date(cur.getFullYear(), cur.getMonth() + n, 1)) : ymd(addDays(cur, n * (ui.view==='day'?1:7)));
+    render();
+  }
+  else if (b.id === 'theme') { theme = isDark() ? 'light' : 'dark'; try { localStorage.setItem(THEME_KEY, theme); } catch(e) {} applyTheme(); render(); }
   else if (d.today) { ui.date = ymd(TODAY); render(); }
   else if (d.goday) { ui.date = d.goday; ui.view = 'day'; render(); }
   else if (d.coach) { ui.hidden.has(d.coach) ? ui.hidden.delete(d.coach) : ui.hidden.add(d.coach); render(); }
