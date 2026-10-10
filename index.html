@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="排課表">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script src="firebase-config.js"></script>
 </head>
 <body>
 <title>皮拉提斯排課表</title>
@@ -198,6 +199,23 @@ tr.click:active td{background:var(--sunk)}
 .modal .acts{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .modal .acts .left{margin-right:auto;display:flex;gap:8px;flex-wrap:wrap}
 .modal textarea.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;height:160px}
+.gate{min-height:100%;display:grid;place-items:center;padding-block:32px}
+.gate-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:18px}
+.gate-brand{display:grid;gap:4px}
+.gate-brand h1{font-size:24px}
+.sync{align-self:center}
+.notes-sec{display:grid;gap:10px}
+.noteform{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.noteform textarea{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;width:100%;resize:vertical;min-height:72px}
+.noterow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.noterow select,.noterow input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 8px;min-width:0}
+.noterow .btn{margin-left:auto}
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:0;max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:var(--r)}
+.notes li{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:4px}
+.notes li:last-child{border-bottom:0}
+.notes p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.nmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nact{margin-left:auto;display:flex;gap:6px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:999px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 
 @media (hover:hover){
@@ -249,7 +267,12 @@ const fromMin = m => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const endOf = b => fromMin(toMin(b.start) + b.dur);
 const wkStart = d => addDays(d, -((d.getDay()+6)%7));
 const fmtMD = s => { const d = parse(s); return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; };
-const uid = p => p + Math.random().toString(36).slice(2,9);
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+function safeUrl(u){
+  u = String(u || '').trim(); if (!u) return '';
+  if (/^(javascript|data|vbscript):/i.test(u)) return '';
+  return /^[a-z][a-z0-9+.-]*:/i.test(u) ? u : 'https://' + u;
+}
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 const STATUS = {
   booked:{label:'已預約', charge:true},
@@ -261,7 +284,7 @@ const STATUS = {
 // ===== data =====
 const KEY = 'pilates-schedule-v2';
 function load(){ try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){} }
+function save(){ if (CLOUD_ON) { pushCloud(); return; } try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){} }
 
 function seed(){
   const coaches = [{id:'k1',name:'Vivian',color:0},{id:'k2',name:'Ken',color:3},{id:'k3',name:'Mia',color:1},{id:'k4',name:'Amber',color:2}];
@@ -270,7 +293,8 @@ function seed(){
   const names = ['林雅婷','陳怡君','王志豪','張書瑜','黃柏翰','吳佳穎','李宜蓁','周品妤','許家豪','蔡沛恩','鄭雅文','劉思妤'];
   const phones = ['0912-345-678','0933-222-111','0988-765-432','0921-555-090','0956-100-200','0910-880-660','0937-414-202','0975-303-818','0922-610-447','0919-276-530','0963-158-902','0928-731-064'];
   const notes = ['下背舊傷，避免深度前彎','','','孕期 22 週','膝蓋術後復健','','','肩頸緊繃','','','',''];
-  const members = names.map((n,i)=>({id:'m'+(i+1), name:n, phone:phones[i], note:notes[i], packages:[]}));
+  const plates = ['ABC-1234','','RDK-5821','BFM-2093','','AXT-7716','','','KLP-3308','','NQR-6650',''];
+  const members = names.map((n,i)=>({id:'m'+(i+1), name:n, phone:phones[i], plate:plates[i], offsetHours: plates[i] ? (i % 3 === 0 ? 2 : 1) : 0, note:notes[i], notesUrl: i === 0 ? 'https://www.notion.so/' : '', packages:[]}));
   const slots = { k1:['09:00','10:00','18:30','19:30'], k2:['07:30','12:00','19:00','20:00'], k3:['10:30','14:00','17:30','18:30'], k4:['09:30','11:00','19:00','20:00'] };
   const roomOf = { k1:'r1', k2:'r2', k3:'r3', k4:'r4' };
   const bookings = [];
@@ -303,10 +327,30 @@ function seed(){
     const used = bookings.filter(b => b.memberIds.includes(m.id) && STATUS[b.status].charge).length;
     m.packages.push({ id:uid('p'), date: ymd(addDays(TODAY, -20 - i*4)), count: used + extra[i], note:'課卡（範例）' });
   });
-  return { sample:true, settings:{ studio:'Core & Breath 皮拉提斯', open:'07:00', close:'22:00' }, coaches, rooms, types, members, bookings };
+  const noteSeed = [
+    ['m1','k1',-3,'右側骨盆仍偏高，Footwork 先做單腳分開練習。下背今天無痛感。'],
+    ['m1','k1',-10,'第一次上 Reformer，核心啟動慢，呼吸配合需要提醒。'],
+    ['m4','k4',-2,'孕期 22 週。避免仰躺超過 3 分鐘，改側躺系列。'],
+    ['m5','k2',-5,'左膝術後第 4 個月，屈膝角度 110° 內，Jumpboard 暫停。'],
+    ['m8','k3',-1,'肩頸緊繃，先做 Cadillac 的 Arm Springs 放鬆再進主課。']
+  ];
+  const notes2 = noteSeed.map(([memberId, coachId, dd, text]) => ({ id:uid('n'), memberId, coachId, date: ymd(addDays(TODAY, dd)), text, createdAt: Date.now() + dd*864e5 }));
+  return { sample:true, settings:{ studio:'Core & Breath 皮拉提斯', open:'07:00', close:'22:00' }, coaches, rooms, types, members, bookings, notes: notes2 };
+}
+function emptyDb(){ return { sample:false, settings:{ studio:'我的皮拉提斯教室', open:'07:00', close:'22:00' }, coaches:[], rooms:[], types:[{id:uid('t'),name:'私人課',dur:55,cap:1}], members:[], bookings:[], notes:[] }; }
+function normalize(d){
+  d.settings = d.settings || { studio:'我的皮拉提斯教室', open:'07:00', close:'22:00' };
+  ['coaches','rooms','types','members','bookings','notes'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  d.members.forEach(m => { m.packages = m.packages || []; m.plate = m.plate || ''; m.offsetHours = Number(m.offsetHours || 0); m.notesUrl = m.notesUrl || ''; m.note = m.note || ''; m.phone = m.phone || ''; });
+  return d;
 }
 
-let db = load() || seed();
+// ===== cloud sync (Firebase：有 firebase-config.js 時啟用) =====
+const CLOUD_ON = !!(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey);
+const COLS = ['members','bookings','notes'];
+const cloud = { user:null, authKnown:false, ready:false, empty:false, offline:false, pending:0, loaded:new Set(), synced:new Map(), unsubs:[], error:'' };
+const localData = (() => { const d = load(); return d ? normalize(d) : null; })();
+let db = CLOUD_ON ? emptyDb() : normalize(localData || seed());
 const ui = { view:'day', date: ymd(TODAY), hidden:new Set(), focus:'', mq:'', mSel:null };
 
 const coachOf = id => db.coaches.find(c => c.id === id);
@@ -334,6 +378,100 @@ function conflicts(b, ignoreIds){
   });
   return out;
 }
+
+// ===== cloud engine =====
+const strip = o => { const { id, ...rest } = o; return rest; };
+const studioDoc = () => ({ sample: !!db.sample, settings: db.settings, coaches: db.coaches, rooms: db.rooms, types: db.types });
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); }); }
+async function cloudInit(){
+  const base = 'https://cdn.jsdelivr.net/npm/firebase@10.12.2/';
+  try {
+    await loadScript(base + 'firebase-app-compat.js');
+    await Promise.all([loadScript(base + 'firebase-auth-compat.js'), loadScript(base + 'firebase-firestore-compat.js')]);
+  } catch(e) { cloud.error = '無法載入雲端元件，請確認網路連線後重新整理頁面。'; cloud.authKnown = true; render(); return; }
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  cloud.auth = firebase.auth(); cloud.fs = firebase.firestore();
+  try { await cloud.fs.enablePersistence({ synchronizeTabs:true }); } catch(e) {}
+  cloud.auth.onAuthStateChanged(u => {
+    cloud.user = u; cloud.authKnown = true; cloud.error = '';
+    cloud.unsubs.forEach(f => f()); cloud.unsubs = []; cloud.ready = false;
+    if (u) subscribe();
+    render();
+  });
+  addEventListener('online', updateSync); addEventListener('offline', updateSync);
+}
+function cloudErr(e){
+  cloud.error = e && e.code === 'permission-denied' ? `這個帳號（${cloud.user?.email || ''}）沒有使用權限。請確認 Email 已加入 Firestore 規則中的管理員名單。` : `雲端連線發生問題：${e?.message || e}`;
+  render();
+}
+function subscribe(){
+  db = emptyDb(); db.types = [];
+  cloud.synced = new Map(); cloud.loaded = new Set(); cloud.empty = false;
+  const fs = cloud.fs;
+  cloud.unsubs.push(fs.doc('studio/main').onSnapshot({ includeMetadataChanges:true }, snap => {
+    cloud.loaded.add('studio');
+    if (snap.exists) {
+      const d = snap.data();
+      db.sample = !!d.sample; db.settings = Object.assign({ studio:'', open:'07:00', close:'22:00' }, d.settings || {});
+      db.coaches = d.coaches || []; db.rooms = d.rooms || []; db.types = d.types || [];
+      cloud.synced.set('studio', JSON.stringify(studioDoc())); cloud.empty = false;
+    } else cloud.empty = true;
+    afterSnap(snap.metadata);
+  }, cloudErr));
+  COLS.forEach(col => cloud.unsubs.push(fs.collection(col).onSnapshot({ includeMetadataChanges:true }, qs => {
+    cloud.loaded.add(col);
+    qs.docChanges().forEach(ch => {
+      const id = ch.doc.id, arr = db[col], i = arr.findIndex(x => x.id === id), k = col + '/' + id;
+      if (ch.type === 'removed') { if (i >= 0) arr.splice(i, 1); cloud.synced.delete(k); return; }
+      const data = { id, ...ch.doc.data() };
+      let obj;
+      if (i >= 0) { obj = arr[i]; Object.keys(obj).forEach(key => { if (!(key in data)) delete obj[key]; }); Object.assign(obj, data); }
+      else { obj = col === 'members' ? normalize({ members:[data] }).members[0] : data; arr.push(obj); }
+      cloud.synced.set(k, JSON.stringify(strip(obj)));
+    });
+    afterSnap(qs.metadata);
+  }, cloudErr)));
+}
+let renderTimer;
+function afterSnap(meta){
+  if (!cloud.ready && ['studio', ...COLS].every(c => cloud.loaded.has(c))) cloud.ready = true;
+  cloud.offline = !!meta.fromCache && !navigator.onLine;
+  clearTimeout(renderTimer);
+  const tryRender = () => {
+    const a = document.activeElement;
+    if (a && $('#root').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && cloud.ready) { renderTimer = setTimeout(tryRender, 1500); return; }
+    render();
+  };
+  renderTimer = setTimeout(tryRender, 60);
+}
+async function pushCloud(){
+  if (!CLOUD_ON || !cloud.user || !cloud.ready) return;
+  const ops = [];
+  const sd = JSON.stringify(studioDoc());
+  if (cloud.synced.get('studio') !== sd) { ops.push(['set', 'studio/main', JSON.parse(sd)]); cloud.synced.set('studio', sd); }
+  COLS.forEach(col => {
+    const seen = new Set();
+    db[col].forEach(o => { const k = col + '/' + o.id; seen.add(k); const j = JSON.stringify(strip(o)); if (cloud.synced.get(k) !== j) { ops.push(['set', k, JSON.parse(j)]); cloud.synced.set(k, j); } });
+    [...cloud.synced.keys()].filter(k => k.startsWith(col + '/') && !seen.has(k)).forEach(k => { ops.push(['del', k]); cloud.synced.delete(k); });
+  });
+  if (!ops.length) return;
+  cloud.pending++; updateSync();
+  try {
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = cloud.fs.batch();
+      ops.slice(i, i + 400).forEach(([t, p, d]) => t === 'set' ? b.set(cloud.fs.doc(p), d) : b.delete(cloud.fs.doc(p)));
+      await b.commit();
+    }
+  } catch(e) { toast(e.code === 'permission-denied' ? '沒有權限儲存到雲端' : '儲存到雲端失敗，請稍後再試'); }
+  finally { cloud.pending--; updateSync(); }
+}
+function syncLabel(){
+  if (!CLOUD_ON) return '';
+  if (!navigator.onLine) return { t:'離線中・恢復連線後自動同步', c:'warn' };
+  if (cloud.pending) return { t:'同步中…', c:'' };
+  return { t:'已同步', c:'ok' };
+}
+function updateSync(){ const el = $('#sync'); const s = syncLabel(); if (el && s) { el.textContent = s.t; el.className = 'pill sync ' + s.c; } }
 
 // ===== ui primitives =====
 function toast(msg){ const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2400); }
@@ -365,7 +503,38 @@ const ICON_MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // ===== render: shell =====
 const scrollKey = () => ui.view === 'day' ? 'd' + ui.date : ui.view === 'week' ? 'w' + ymd(wkStart(parse(ui.date))) : '';
+function gate(html){ $('#root').innerHTML = `<div class="gate"><div class="gate-card">${html}</div></div>`; }
+function renderGate(){
+  if (!CLOUD_ON) return false;
+  if (!cloud.authKnown) { gate(`<div class="gate-brand"><span class="label">排課表</span><h1>連線中…</h1></div>`); return true; }
+  if (!cloud.user) {
+    gate(`<div class="gate-brand"><span class="label">排課表</span><h1>管理員登入</h1><p class="muted small" style="margin:0">登入後，課表會在所有裝置同步。</p></div>
+      <form class="form" id="login">
+        <div class="field"><label for="lg-email">Email</label><input id="lg-email" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="lg-pass">密碼</label><input id="lg-pass" type="password" autocomplete="current-password" required></div>
+        <div id="lg-err" class="small" style="color:var(--bad)">${esc(cloud.error)}</div>
+        <button class="btn primary" type="submit" id="lg-go">登入</button>
+        <button class="btn" type="button" id="lg-forgot">忘記密碼</button>
+      </form>`);
+    return true;
+  }
+  if (cloud.error) { gate(`<div class="gate-brand"><h1>無法讀取資料</h1></div><p style="margin:0">${esc(cloud.error)}</p><button class="btn" id="logout">登出並換帳號</button>`); return true; }
+  if (!cloud.ready) { gate(`<div class="gate-brand"><span class="label">${esc(cloud.user.email)}</span><h1>載入課表中…</h1></div>`); return true; }
+  if (cloud.empty) {
+    const hasLocal = localData && !localData.sample && (localData.members.length || localData.bookings.length);
+    gate(`<div class="gate-brand"><span class="label">${esc(cloud.user.email)}</span><h1>第一次使用雲端</h1><p class="muted small" style="margin:0">雲端目前沒有資料，請選擇要怎麼開始。之後所有登入的裝置都會看到同一份課表。</p></div>
+      <div class="form">
+        ${hasLocal ? `<button class="btn primary" id="setup-local">上傳這台裝置上的資料（${localData.members.length} 位會員、${localData.bookings.length} 堂課）</button>` : ''}
+        <button class="btn ${hasLocal ? '' : 'primary'}" id="setup-blank">從空白開始</button>
+        <button class="btn" id="setup-sample">載入範例資料試用</button>
+        <button class="btn" id="logout">登出</button>
+      </div>`);
+    return true;
+  }
+  return false;
+}
 function render(){
+  if (renderGate()) return;
   const v = ui.view;
   const prev = $('.cal-wrap');
   const keep = prev && ui.lastKey === scrollKey() ? { t: prev.scrollTop, l: prev.scrollLeft } : null;
@@ -375,6 +544,7 @@ function render(){
     <header class="top">
       <div class="brand"><span class="label">${esc(db.settings.studio)}</span><h1>排課表</h1></div>
       <div class="seg" role="tablist">${[['day','日'],['week','週'],['month','月'],['members','會員'],['settings','設定']].map(([k,l])=>`<button class="${v===k?'on':''}" data-view="${k}">${l}</button>`).join('')}</div>
+      ${CLOUD_ON ? (s => `<span id="sync" class="pill sync ${s.c}" title="${esc(cloud.user?.email || '')}">${s.t}</span>`)(syncLabel()) : ''}
       <button class="btn icon themebtn" id="theme" aria-label="切換為${dark?'亮色':'暗色'}模式" title="切換為${dark?'亮色':'暗色'}模式">${dark ? ICON_SUN : ICON_MOON}</button>
       <button class="btn primary" data-new="1">＋ 新增預約</button>
     </header>
@@ -538,6 +708,7 @@ function openBooking(opts = {}){
     <form class="form" id="bf">
       <div class="field"><label>會員</label>
         <div class="mchips" id="b-mchips"></div>
+        <div class="small muted num" id="b-park"></div>
         <div class="addrow"><select id="b-madd" aria-label="加入會員"></select></div>
         <div class="addrow"><input id="b-mnew" placeholder="新會員？輸入姓名後按「建立」"><button type="button" class="btn sm" id="b-mnew-btn">建立</button></div>
       </div>
@@ -559,7 +730,7 @@ function openBooking(opts = {}){
       <div class="field"><label for="b-note">備註</label><input id="b-note" value="${esc(d.note)}" placeholder="例：今天加強側躺系列"></div>
       <div id="b-warn"></div>
       <div class="acts">
-        ${ex ? `<span class="left"><button type="button" class="btn danger" id="b-del">刪除</button>${ex.seriesId?`<button type="button" class="btn danger" id="b-del-series">刪除此堂及之後</button>`:''}</span>` : ''}
+        ${ex ? `<span class="left"><button type="button" class="btn" id="b-note">寫筆記</button><button type="button" class="btn danger" id="b-del">刪除</button>${ex.seriesId?`<button type="button" class="btn danger" id="b-del-series">刪除此堂及之後</button>`:''}</span>` : ''}
         <button type="button" class="btn" data-close>取消</button><button class="btn primary" type="submit" id="b-save">儲存</button>
       </div>
     </form>`, (m, close) => {
@@ -571,6 +742,7 @@ function openBooking(opts = {}){
     }
     function drawMembers(){
       $('#b-mchips', m).innerHTML = d.memberIds.length ? d.memberIds.map(id => `<span class="mchip">${esc(mName(id))}<button type="button" data-rm="${id}" aria-label="移除 ${esc(mName(id))}">×</button></span>`).join('') : `<span class="small muted">尚未加入會員</span>`;
+      $('#b-park', m).innerHTML = d.memberIds.map(memberOf).filter(x => x && (x.plate || x.note)).map(x => `${esc(x.name)}：${[x.plate ? `車牌 ${esc(x.plate)}（折抵 ${x.offsetHours || 0} 小時）` : '', x.note ? `⚠ ${esc(x.note)}` : ''].filter(Boolean).join('　')}`).join('<br>');
       $('#b-madd', m).innerHTML = `<option value="">＋ 從名單加入會員…</option>` + db.members.filter(x => !d.memberIds.includes(x.id)).map(x => `<option value="${x.id}">${esc(x.name)}（剩 ${credits(x).left} 堂）</option>`).join('');
     }
     function check(){
@@ -614,6 +786,7 @@ function openBooking(opts = {}){
       }
     };
     if (ex) {
+      $('#b-note', m).onclick = () => { if (!ex.memberIds.length) return toast('這堂課沒有會員'); close(); openNote({ memberIds: ex.memberIds, coachId: ex.coachId, date: ex.date }); };
       $('#b-del', m).onclick = () => { close(); confirmBox('刪除這堂課？', `<p style="margin:0">${fmtMD(ex.date)} ${ex.start}・${esc(ex.memberIds.map(mName).join('、'))}</p><p class="small muted">若只是會員請假，建議把狀態改成「請假」保留紀錄。</p>`, '刪除', () => { db.bookings = db.bookings.filter(b => b !== ex); commit('已刪除'); }); };
       if (ex.seriesId) $('#b-del-series', m).onclick = () => { const list = db.bookings.filter(b => b.seriesId === ex.seriesId && b.date >= ex.date); close(); confirmBox('刪除此堂及之後的課？', `<p style="margin:0">共 ${list.length} 堂（${fmtMD(ex.date)} 起，每週 ${ex.start}）。</p>`, `刪除 ${list.length} 堂`, () => { db.bookings = db.bookings.filter(b => !list.includes(b)); commit(`已刪除 ${list.length} 堂`); }); };
     }
@@ -623,12 +796,13 @@ function openBooking(opts = {}){
 // ===== members =====
 function memberView(){
   const q = ui.mq.trim();
-  const list = db.members.filter(m => !q || m.name.includes(q) || (m.phone||'').includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+  const qU = q.toUpperCase();
+  const list = db.members.filter(m => !q || m.name.includes(q) || (m.phone||'').includes(q) || (m.plate||'').toUpperCase().includes(qU)).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
   if (!ui.mSel || !memberOf(ui.mSel)) ui.mSel = list[0]?.id || null;
   const sel = memberOf(ui.mSel);
   return `<div class="mview">
     <aside class="panel mlist">
-      <div class="tools"><input id="mq" placeholder="搜尋姓名或電話" value="${esc(ui.mq)}" aria-label="搜尋會員"><button class="btn sm" id="m-add">＋ 會員</button></div>
+      <div class="tools"><input id="mq" placeholder="搜尋姓名、電話或車牌" value="${esc(ui.mq)}" aria-label="搜尋會員"><button class="btn sm" id="m-add">＋ 會員</button></div>
       <ul>${list.map(m => { const l = credits(m).left; return `<li><button class="${m.id===ui.mSel?'on':''}" data-msel="${m.id}"><span>${esc(m.name)}</span><span class="pill ${l<=0?'bad':l<=2?'warn':''} num">剩 ${l}</span></button></li>`; }).join('') || '<li class="empty">找不到會員</li>'}</ul>
     </aside>
     <section class="panel">${sel ? memberDetail(sel) : '<div class="empty">還沒有會員，按「＋ 會員」新增。</div>'}</section>
@@ -640,8 +814,24 @@ function memberDetail(m){
   const up = mine.filter(b => new Date(`${b.date}T${b.start}`) >= now), past = mine.filter(b => new Date(`${b.date}T${b.start}`) < now).reverse().slice(0, 12);
   const row = b => { const c = coachOf(b.coachId); return `<tr class="click" data-bk="${b.id}"><td class="num">${fmtMD(b.date)}</td><td class="num">${b.start}–${endOf(b)}</td><td><span style="display:inline-flex;align-items:center;gap:6px;--cc:var(--c${c?.color??0})"><span class="dot"></span>${esc(c?.name)}</span></td><td>${esc(typeOf(b.typeId)?.name)}</td><td>${esc(roomOf(b.roomId)?.name)}</td><td><span class="pill ${b.status==='done'?'ok':b.status==='noshow'?'bad':b.status==='leave'?'warn':''}">${STATUS[b.status].label}</span></td></tr>`; };
   const tbl = rows => rows.length ? `<div class="tbl"><table><thead><tr><th>日期</th><th>時間</th><th>教練</th><th>課程</th><th>教室</th><th>狀態</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>` : `<p class="muted small" style="margin:0">沒有紀錄</p>`;
+  const url = safeUrl(m.notesUrl);
+  const notes = db.notes.filter(n => n.memberId === m.id).sort((a,b) => (b.date + (b.createdAt||0)).localeCompare(a.date + (a.createdAt||0)));
+  const coachOpts = db.coaches.map(c => `<option value="${c.id}" ${c.id === (ui.noteCoach || db.coaches[0]?.id) ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  const notesSec = `<div class="notes-sec">
+    <div class="sec-title"><h3>教練筆記</h3>
+      <span style="display:flex;gap:8px;flex-wrap:wrap">${url ? `<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer">開啟外部筆記 ↗</a>` : ''}<button class="btn sm" data-medit="${m.id}" data-focusfield="mf-url">${url ? '更改連結' : '＋ 連結外部筆記'}</button></span></div>
+    <form class="noteform" id="noteform" data-mid="${m.id}">
+      <textarea id="nt-text" rows="3" placeholder="記錄身體狀況、動作調整、下次上課重點…" aria-label="新增筆記內容"></textarea>
+      <div class="noterow"><select id="nt-coach" aria-label="記錄教練">${coachOpts}</select><input id="nt-date" type="date" value="${ymd(TODAY)}" aria-label="日期"><button class="btn primary sm" type="submit">新增筆記</button></div>
+    </form>
+    ${notes.length ? `<ul class="notes">${notes.map(n => { const c = coachOf(n.coachId); return `<li>
+      <div class="nmeta"><span style="display:inline-flex;align-items:center;gap:6px;--cc:var(--c${c?.color ?? 0})"><span class="dot"></span><b>${esc(c?.name || '—')}</b></span><span class="muted num small">${fmtMD(n.date)}</span>
+        <span class="nact"><button class="btn sm" data-nedit="${n.id}">編輯</button><button class="btn sm danger" data-ndel="${n.id}">刪除</button></span></div>
+      <p>${esc(n.text)}</p></li>`; }).join('')}</ul>` : `<p class="muted small" style="margin:0">還沒有筆記。</p>`}
+  </div>`;
+  const tags = [m.phone || '未填電話', m.plate ? `車牌 ${m.plate}` : '', m.plate || m.offsetHours ? `停車折抵 ${m.offsetHours || 0} 小時` : ''].filter(Boolean);
   return `<div class="mdetail">
-    <div class="mhead"><div><h2>${esc(m.name)}</h2><div class="muted small num">${esc(m.phone || '未填電話')}${m.note ? `・${esc(m.note)}` : ''}</div></div>
+    <div class="mhead"><div><h2>${esc(m.name)}</h2><div class="muted small num">${tags.map(esc).join('・')}</div>${m.note ? `<div class="small" style="margin-top:4px"><span class="pill warn">注意</span> ${esc(m.note)}</div>` : ''}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-new="1" data-nm="${m.id}">＋ 為此會員排課</button><button class="btn" data-mfocus="${m.id}">在課表上標示</button><button class="btn" data-medit="${m.id}">編輯資料</button></div></div>
     <div class="credit">
       <div><span class="label">剩餘堂數</span><span class="v num ${cr.left<=0?'zero':cr.left<=2?'low':''}">${cr.left}</span></div>
@@ -649,6 +839,7 @@ function memberDetail(m){
       <div><span class="label">已使用</span><span class="v num">${cr.used}</span></div>
       <div><span class="label">之後已排</span><span class="v num">${cr.upcoming}</span></div>
     </div>
+    ${notesSec}
     <div><div class="sec-title"><h3>接下來的課</h3></div>${tbl(up)}</div>
     <div><div class="sec-title"><h3>最近上課紀錄</h3><span class="small muted">最多顯示 12 筆</span></div>${tbl(past)}</div>
     <div><div class="sec-title"><h3>購買紀錄</h3><button class="btn sm" data-pkg="${m.id}">＋ 新增購買</button></div>
@@ -656,18 +847,21 @@ function memberDetail(m){
     </div>
   </div>`;
 }
-function editMember(id){
-  const m = id ? memberOf(id) : { name:'', phone:'', note:'' };
+function editMember(id, focusField){
+  const m = id ? memberOf(id) : { name:'', phone:'', plate:'', offsetHours:0, note:'', notesUrl:'' };
   modal(`<h3>${id?'編輯會員':'新增會員'}</h3><form class="form" id="mf">
-    <div class="field"><label for="mf-name">姓名</label><input id="mf-name" required value="${esc(m.name)}"></div>
-    <div class="field"><label for="mf-phone">電話</label><input id="mf-phone" inputmode="tel" value="${esc(m.phone)}"></div>
-    <div class="field"><label for="mf-note">身體狀況／備註</label><input id="mf-note" value="${esc(m.note)}" placeholder="例：下背舊傷"></div>
+    <div class="grid2"><div class="field"><label for="mf-name">姓名</label><input id="mf-name" required value="${esc(m.name)}"></div>
+    <div class="field"><label for="mf-phone">電話</label><input id="mf-phone" type="tel" inputmode="tel" value="${esc(m.phone)}"></div></div>
+    <div class="grid2"><div class="field"><label for="mf-plate">車牌號碼</label><input id="mf-plate" value="${esc(m.plate)}" placeholder="例：ABC-1234" autocapitalize="characters" autocomplete="off"></div>
+    <div class="field"><label for="mf-hours">停車折抵時數（小時）</label><input id="mf-hours" type="number" inputmode="decimal" min="0" step="0.5" value="${m.offsetHours || 0}"></div></div>
+    <div class="field"><label for="mf-note">身體狀況／注意事項</label><input id="mf-note" value="${esc(m.note)}" placeholder="例：下背舊傷，避免深度前彎"></div>
+    <div class="field"><label for="mf-url">外部筆記連結（選填）</label><input id="mf-url" type="url" inputmode="url" value="${esc(m.notesUrl)}" placeholder="貼上 Notion、Google 文件、Evernote 等筆記的分享連結"></div>
     ${id?'':`<div class="field"><label for="mf-pk">首次購買堂數（可留空）</label><input id="mf-pk" type="number" min="0" placeholder="例：10"></div>`}
     <div class="acts">${id?`<span class="left"><button type="button" class="btn danger" id="mf-del">刪除會員</button></span>`:''}<button type="button" class="btn" data-close>取消</button><button class="btn primary">儲存</button></div></form>`,
   (el, close) => {
     $('#mf', el).onsubmit = e => {
       e.preventDefault();
-      const v = { name:$('#mf-name').value.trim(), phone:$('#mf-phone').value.trim(), note:$('#mf-note').value.trim() };
+      const v = { name:$('#mf-name').value.trim(), phone:$('#mf-phone').value.trim(), plate:$('#mf-plate').value.trim().toUpperCase(), offsetHours: Math.max(0, Number($('#mf-hours').value) || 0), note:$('#mf-note').value.trim(), notesUrl: safeUrl($('#mf-url').value) };
       if (id) Object.assign(m, v);
       else { const pk = Number($('#mf-pk').value || 0); const nm = { id:uid('m'), ...v, packages: pk ? [{ id:uid('p'), date:ymd(TODAY), count:pk, note:`${pk} 堂課卡` }] : [] }; db.members.push(nm); ui.mSel = nm.id; }
       close(); commit(id ? '會員資料已更新' : '已新增會員');
@@ -677,8 +871,31 @@ function editMember(id){
       close(); confirmBox(`刪除 ${esc(m.name)}？`, `<p style="margin:0">${n ? `這位會員還有 ${n} 堂未上的課，會一併從課表移除。` : '過去的上課紀錄會保留，但會顯示為「已刪除會員」。'}</p>`, '刪除', () => {
         db.bookings.forEach(b => { if (b.status==='booked') b.memberIds = b.memberIds.filter(x => x !== id); });
         db.bookings = db.bookings.filter(b => b.memberIds.length || b.status !== 'booked');
-        db.members = db.members.filter(x => x.id !== id); if (ui.focus === id) ui.focus = ''; ui.mSel = null; commit('會員已刪除');
+        db.members = db.members.filter(x => x.id !== id); db.notes = db.notes.filter(n => n.memberId !== id); if (ui.focus === id) ui.focus = ''; ui.mSel = null; commit('會員已刪除');
       });
+    };
+    if (focusField) setTimeout(() => $('#' + focusField, el)?.focus(), 30);
+  });
+}
+function openNote(opts){
+  const ex = opts.id ? db.notes.find(n => n.id === opts.id) : null;
+  const memberIds = ex ? [ex.memberId] : opts.memberIds;
+  const d = ex || { memberId: memberIds[0], coachId: opts.coachId || db.coaches[0]?.id, date: opts.date || ymd(TODAY), text:'' };
+  modal(`<h3>${ex ? '編輯筆記' : '寫課堂筆記'}</h3><form class="form" id="nf">
+    ${memberIds.length > 1 ? `<div class="field"><label for="nf-m">會員</label><select id="nf-m">${memberIds.map(id => `<option value="${id}">${esc(mName(id))}</option>`).join('')}</select></div>` : `<div><span class="label">會員</span><div><b>${esc(mName(d.memberId))}</b></div></div>`}
+    <div class="grid2"><div class="field"><label for="nf-c">教練</label><select id="nf-c">${db.coaches.map(c => `<option value="${c.id}" ${c.id===d.coachId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="field"><label for="nf-d">日期</label><input id="nf-d" type="date" value="${d.date}" required></div></div>
+    <div class="field"><label for="nf-t">內容</label><textarea id="nf-t" rows="5" required placeholder="記錄身體狀況、動作調整、下次上課重點…">${esc(d.text)}</textarea></div>
+    <div class="acts"><button type="button" class="btn" data-close>取消</button><button class="btn primary">儲存筆記</button></div></form>`,
+  (el, close) => {
+    setTimeout(() => $('#nf-t', el).focus(), 30);
+    $('#nf', el).onsubmit = e => {
+      e.preventDefault();
+      const v = { memberId: $('#nf-m', el)?.value || d.memberId, coachId: $('#nf-c', el).value, date: $('#nf-d', el).value, text: $('#nf-t', el).value.trim() };
+      if (!v.text) return;
+      ui.noteCoach = v.coachId;
+      if (ex) Object.assign(ex, v); else db.notes.push({ id:uid('n'), ...v, createdAt: Date.now() });
+      close(); commit(ex ? '筆記已更新' : '筆記已儲存');
     };
   });
 }
@@ -713,8 +930,14 @@ function settingsView(){
       <div class="srow type hdr"><span>名稱</span><span>分鐘</span><span>人數上限</span><span class="btn sm">刪除</span></div>
       ${db.types.map(t=>`<div class="srow type"><input data-set="type-name" data-id="${t.id}" value="${esc(t.name)}" aria-label="課程名稱"><input class="num" type="number" inputmode="numeric" min="15" step="5" data-set="type-dur" data-id="${t.id}" value="${t.dur}" aria-label="${esc(t.name)} 分鐘"><input class="num" type="number" inputmode="numeric" min="1" data-set="type-cap" data-id="${t.id}" value="${t.cap}" aria-label="${esc(t.name)} 人數上限"><button class="btn sm danger" data-del-type="${t.id}">刪除</button></div>`).join('')}</div>
       <button class="btn sm" id="add-type" style="justify-self:start">＋ 新增課程類型</button></div>
+    <div class="panel"><h3>帳號與同步</h3>
+      ${CLOUD_ON ? `<p style="margin:0">已登入：<b>${esc(cloud.user?.email || '')}</b></p>
+        <p class="small muted" style="margin:0">資料存放在雲端，所有用管理員帳號登入的電腦、平板、手機都會即時同步。暫時沒有網路時仍可排課，恢復連線後會自動上傳。</p>
+        <button class="btn" id="logout" style="justify-self:start">登出</button>`
+      : `<p class="small muted" style="margin:0">目前是<b>單機模式</b>：資料只存在這個瀏覽器。完成雲端設定（上傳 firebase-config.js）後，這裡會改成管理員登入，並在所有裝置同步。</p>`}
+    </div>
     <div class="panel"><h3>資料備份</h3>
-      <p class="small muted" style="margin:0">資料儲存在這台電腦的瀏覽器中，換電腦或清除瀏覽器資料後就會不見。請定期匯出備份。</p>
+      <p class="small muted" style="margin:0">${CLOUD_ON ? '雲端資料會自動保存；仍建議每月匯出一次備份檔留存。' : '資料儲存在這台電腦的瀏覽器中，換電腦或清除瀏覽器資料後就會不見。請定期匯出備份。'}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="export">匯出備份</button><button class="btn" id="import">匯入備份</button></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn danger" id="reset-sample">重新載入範例資料</button><button class="btn danger" id="wipe">清空全部資料</button></div>
     </div>
@@ -738,7 +961,7 @@ function importData(){
   (el, close) => {
     $('#im-file', el).onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => $('#im-txt', el).value = r.result; r.readAsText(f); };
     $('#im-go', el).onclick = () => {
-      try { const d = JSON.parse($('#im-txt', el).value); if (!Array.isArray(d.bookings) || !Array.isArray(d.members)) throw 0; db = d; close(); commit('備份已匯入'); }
+      try { const d = JSON.parse($('#im-txt', el).value); if (!Array.isArray(d.bookings) || !Array.isArray(d.members)) throw 0; db = normalize(d); close(); commit('備份已匯入'); }
       catch(e) { toast('內容不是有效的備份檔，請確認後再試'); }
     };
   });
@@ -770,7 +993,19 @@ document.addEventListener('click', e => {
   else if (d.mopen) { ui.mSel = d.mopen; ui.view = 'members'; render(); }
   else if (d.msel) { ui.mSel = d.msel; render(); }
   else if (d.mfocus) { ui.focus = d.mfocus; ui.view = 'week'; render(); }
-  else if (d.medit) editMember(d.medit);
+  else if (d.medit) editMember(d.medit, d.focusfield);
+  else if (d.nedit) openNote({ id: d.nedit });
+  else if (d.ndel) { const n = db.notes.find(x => x.id === d.ndel); confirmBox('刪除這則筆記？', `<p style="margin:0">${fmtMD(n.date)}・${esc(n.text.slice(0, 40))}${n.text.length > 40 ? '…' : ''}</p>`, '刪除', () => { db.notes = db.notes.filter(x => x !== n); commit('筆記已刪除'); }); }
+  else if (b.id === 'logout') { cloud.auth?.signOut(); }
+  else if (b.id === 'lg-forgot') {
+    const email = $('#lg-email')?.value.trim();
+    if (!email) { $('#lg-err').textContent = '請先輸入 Email，再按「忘記密碼」。'; return; }
+    cloud.auth.sendPasswordResetEmail(email).then(() => { $('#lg-err').style.color = 'var(--ok)'; $('#lg-err').textContent = `重設密碼信已寄到 ${email}。`; }, () => { $('#lg-err').textContent = '無法寄出重設信，請確認 Email 是否正確。'; });
+  }
+  else if (b.id === 'setup-local' || b.id === 'setup-blank' || b.id === 'setup-sample') {
+    const src = b.id === 'setup-local' ? JSON.parse(JSON.stringify(localData)) : b.id === 'setup-sample' ? seed() : emptyDb();
+    db = normalize(src); cloud.empty = false; ui.focus = ''; pushCloud(); render(); toast('雲端課表已建立');
+  }
   else if (d.pkg) addPackage(d.pkg);
   else if (d.pkdel) { const [mid,pid] = d.pkdel.split('|'); const m = memberOf(mid); m.packages = m.packages.filter(p => p.id !== pid); commit('已刪除購買紀錄'); }
   else if (d.delCoach) { const n = db.bookings.filter(x => x.coachId === d.delCoach).length; if (n) return toast(`這位教練還有 ${n} 堂課，請先改派其他教練`); db.coaches = db.coaches.filter(c => c.id !== d.delCoach); commit('已刪除教練'); }
@@ -782,9 +1017,9 @@ document.addEventListener('click', e => {
   else if (b.id === 'add-type') { db.types.push({ id:uid('t'), name:'新課程', dur:55, cap:1 }); commit(); }
   else if (b.id === 'export') exportData();
   else if (b.id === 'import') importData();
-  else if (b.id === 'clear-sample') confirmBox('清除範例資料？', '<p style="margin:0">會刪除所有範例會員與課程，保留教練、教室與課程類型設定（可在「設定」修改）。</p>', '清除', () => { db.members = []; db.bookings = []; db.sample = false; ui.focus = ''; commit('已清除，可以開始建立會員與排課'); });
+  else if (b.id === 'clear-sample') confirmBox('清除範例資料？', '<p style="margin:0">會刪除所有範例會員與課程，保留教練、教室與課程類型設定（可在「設定」修改）。</p>', '清除', () => { db.members = []; db.bookings = []; db.notes = []; db.sample = false; ui.focus = ''; commit('已清除，可以開始建立會員與排課'); });
   else if (b.id === 'reset-sample') confirmBox('重新載入範例資料？', '<p style="margin:0">目前所有資料會被範例取代。如需保留，請先匯出備份。</p>', '載入範例', () => { db = seed(); ui.focus = ''; commit('已載入範例資料'); });
-  else if (b.id === 'wipe') confirmBox('清空全部資料？', '<p style="margin:0">會員、課程、教練與設定都會刪除，無法復原。如需保留，請先匯出備份。</p>', '清空', () => { db = { sample:false, settings:{ studio:'我的皮拉提斯教室', open:'07:00', close:'22:00' }, coaches:[], rooms:[], types:[{id:uid('t'),name:'私人課',dur:55,cap:1}], members:[], bookings:[] }; ui.focus=''; commit('已清空'); });
+  else if (b.id === 'wipe') confirmBox('清空全部資料？', `<p style="margin:0">會員、課程、筆記、教練與設定都會刪除，無法復原${CLOUD_ON ? '，所有裝置都會一起清空' : ''}。如需保留，請先匯出備份。</p>`, '清空', () => { db = emptyDb(); ui.focus=''; commit('已清空'); });
 });
 document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
@@ -803,10 +1038,31 @@ document.addEventListener('change', e => {
     commit('已儲存');
   }
 });
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id === 'login') {
+    e.preventDefault();
+    const btn = $('#lg-go'), err = $('#lg-err');
+    btn.disabled = true; btn.textContent = '登入中…'; err.style.color = 'var(--bad)'; err.textContent = '';
+    cloud.auth.signInWithEmailAndPassword($('#lg-email').value.trim(), $('#lg-pass').value).catch(ex => {
+      const msg = { 'auth/invalid-credential':'Email 或密碼不正確。', 'auth/wrong-password':'Email 或密碼不正確。', 'auth/user-not-found':'Email 或密碼不正確。', 'auth/invalid-email':'Email 格式不正確。', 'auth/too-many-requests':'嘗試次數過多，請稍後再試。', 'auth/network-request-failed':'無法連線，請檢查網路。', 'auth/user-disabled':'這個帳號已停用。' }[ex.code] || '登入失敗，請再試一次。';
+      err.textContent = msg; btn.disabled = false; btn.textContent = '登入';
+    });
+  }
+  else if (f.id === 'noteform') {
+    e.preventDefault();
+    const text = $('#nt-text').value.trim();
+    if (!text) { $('#nt-text').focus(); return; }
+    const coachId = $('#nt-coach').value; ui.noteCoach = coachId;
+    db.notes.push({ id:uid('n'), memberId: f.dataset.mid, coachId, date: $('#nt-date').value || ymd(TODAY), text, createdAt: Date.now() });
+    commit('筆記已儲存');
+  }
+});
 document.addEventListener('input', e => {
   if (e.target.id === 'mq') { ui.mq = e.target.value; render(); const i = $('#mq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 });
 render();
+if (CLOUD_ON) cloudInit();
 </script>
 
 </body>
